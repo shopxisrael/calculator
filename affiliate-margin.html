@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>מחשבון שותפים - עמלות ושולי רווח</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts (Heebo for clean Hebrew typography) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Heebo', sans-serif;
+        }
+        input[type="range"] {
+            accent-color: #4f46e5;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen py-8 px-4">
+
+    <div class="max-w-4xl mx-auto">
+        <!-- Header -->
+        <header class="text-center mb-8">
+            <h1 class="text-3xl md:text-4xl font-extrabold text-indigo-950 mb-2">מחשבון עמלות ושולי רווח לשותפים</h1>
+            <p class="text-slate-600 max-w-lg mx-auto">כלי עזר לניהול משא ומתן מול חנויות. חשב בקלות את שולי הרווח של בית העסק בהתחשב בהנחת הקופון ובעמלה שלך מהיתרה.</p>
+        </header>
+
+        <!-- Main Grid Layout -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            
+            <!-- Input & Controller Panel (Left/Top) -->
+            <div class="lg:col-span-7 bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between">
+                <div>
+                    <!-- Mode Selector -->
+                    <div class="mb-6">
+                        <label class="block text-sm font-bold text-slate-700 mb-2">מה ברצונך לחשב?</label>
+                        <div class="grid grid-cols-3 gap-2 bg-slate-100 p-1 rounded-xl">
+                            <button onclick="switchMode('margin')" id="btn-mode-margin" class="py-2.5 px-2 text-xs md:text-sm font-medium rounded-lg transition-all duration-200 text-center bg-white text-indigo-700 shadow-sm font-bold">
+                                שולי רווח לעסק
+                            </button>
+                            <button onclick="switchMode('commission')" id="btn-mode-commission" class="py-2.5 px-2 text-xs md:text-sm font-medium rounded-lg transition-all duration-200 text-center text-slate-600 hover:bg-white/50">
+                                עמלה אפשרית
+                            </button>
+                            <button onclick="switchMode('coupon')" id="btn-mode-coupon" class="py-2.5 px-2 text-xs md:text-sm font-medium rounded-lg transition-all duration-200 text-center text-slate-600 hover:bg-white/50">
+                                קופון אפשרי
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Input Parameters Section -->
+                    <div class="space-y-6">
+                        <!-- Parameter 1 (always visible, role changes based on mode) -->
+                        <div id="param-group-1">
+                            <div class="flex justify-between items-center mb-2">
+                                <label id="label-param-1" for="param-1" class="font-medium text-slate-700">אחוז הנחת קופון:</label>
+                                <span id="val-param-1" class="text-indigo-600 font-bold bg-indigo-50 px-3 py-1 rounded-full text-sm">10%</span>
+                            </div>
+                            <input type="range" id="param-1" min="0" max="90" step="0.5" value="10" oninput="calculate()" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer">
+                            <div class="flex justify-between text-xs text-slate-400 px-1 mt-1">
+                                <span>0%</span>
+                                <span>90%</span>
+                            </div>
+                        </div>
+
+                        <!-- Parameter 2 -->
+                        <div id="param-group-2">
+                            <div class="flex justify-between items-center mb-2">
+                                <label id="label-param-2" for="param-2" class="font-medium text-slate-700">אחוז העמלה שלך (מהיתרה):</label>
+                                <span id="val-param-2" class="text-emerald-600 font-bold bg-emerald-50 px-3 py-1 rounded-full text-sm">10%</span>
+                            </div>
+                            <input type="range" id="param-2" min="0" max="90" step="0.5" value="10" oninput="calculate()" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer">
+                            <div class="flex justify-between text-xs text-slate-400 px-1 mt-1">
+                                <span>0%</span>
+                                <span>90%</span>
+                            </div>
+                        </div>
+
+                        <!-- Target Margin Parameter (Initially hidden, shown in modes 2 & 3) -->
+                        <div id="param-group-target" class="hidden">
+                            <div class="flex justify-between items-center mb-2">
+                                <label for="param-target" class="font-medium text-slate-700">שולי רווח רצויים לבית העסק:</label>
+                                <span id="val-param-target" class="text-purple-600 font-bold bg-purple-50 px-3 py-1 rounded-full text-sm">81%</span>
+                            </div>
+                            <input type="range" id="param-target" min="10" max="100" step="0.5" value="81" oninput="calculate()" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer">
+                            <div class="flex justify-between text-xs text-slate-400 px-1 mt-1">
+                                <span>10%</span>
+                                <span>100%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Custom Quick Value Input -->
+                <div class="mt-8 pt-6 border-t border-slate-100">
+                    <h3 class="text-sm font-bold text-slate-700 mb-3">הקלדה ידנית של ערכים מהירה:</h3>
+                    <div class="grid grid-cols-3 gap-3">
+                        <div>
+                            <label class="block text-xs text-slate-500 mb-1">הנחת קופון (%)</label>
+                            <input type="number" id="num-coupon" min="0" max="100" step="0.1" value="10" oninput="syncInputs('coupon')" onblur="formatInputOnBlur('coupon')" class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-center font-semibold">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-slate-500 mb-1">עמלת שותף (%)</label>
+                            <input type="number" id="num-commission" min="0" max="100" step="0.1" value="10" oninput="syncInputs('commission')" onblur="formatInputOnBlur('commission')" class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-center font-semibold">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-slate-500 mb-1">רווח לעסק (%)</label>
+                            <input type="number" id="num-margin" min="0" max="100" step="0.1" value="81" oninput="syncInputs('margin')" onblur="formatInputOnBlur('margin')" class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-center font-semibold">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Visual Results & Breakdown (Right/Bottom) -->
+            <div class="lg:col-span-5 flex flex-col gap-6">
+                <!-- Result Card -->
+                <div class="bg-gradient-to-br from-indigo-900 to-slate-950 text-white p-6 rounded-2xl shadow-md relative overflow-hidden">
+                    <div class="absolute -right-10 -bottom-10 w-40 h-40 bg-white/5 rounded-full blur-xl pointer-events-none"></div>
+                    
+                    <h2 id="result-title" class="text-sm uppercase tracking-wider text-indigo-200 font-bold mb-1">שולי רווח סופיים לעסק</h2>
+                    <div class="flex items-baseline gap-2 mb-4">
+                        <span id="result-main-value" class="text-5xl font-black text-white">81.0%</span>
+                        <span class="text-indigo-200 text-lg">ממחיר המוצר</span>
+                    </div>
+
+                    <!-- Explainer text dynamics -->
+                    <p id="result-explainer" class="text-sm text-indigo-100 leading-relaxed bg-white/10 p-3 rounded-lg border border-white/10">
+                        על מוצר שמחירו 100 ₪, הלקוח ישלם 90 ₪ לאחר הנחה. מתוך היתרה, תועבר אליך עמלה בסך 9.00 ₪, ולבית העסק יישארו 81.00 ₪.
+                    </p>
+                </div>
+
+                <!-- Breakdown Progress Bar -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                    <h3 class="text-sm font-bold text-slate-700 mb-4">חלוקת מחיר המוצר המלא (100%):</h3>
+                    
+                    <!-- Visual Stacked Bar -->
+                    <div class="h-8 w-full bg-slate-100 rounded-xl overflow-hidden flex mb-6">
+                        <div id="bar-margin" class="bg-indigo-600 h-full transition-all duration-300 flex items-center justify-center text-white text-[10px] md:text-xs font-bold" style="width: 81%;">
+                            עסק (81%)
+                        </div>
+                        <div id="bar-commission" class="bg-emerald-500 h-full transition-all duration-300 flex items-center justify-center text-white text-[10px] md:text-xs font-bold" style="width: 9%;">
+                            עמלה (9%)
+                        </div>
+                        <div id="bar-coupon" class="bg-amber-500 h-full transition-all duration-300 flex items-center justify-center text-white text-[10px] md:text-xs font-bold" style="width: 10%;">
+                            הנחה (10%)
+                        </div>
+                    </div>
+
+                    <!-- Legend & Details -->
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center text-sm">
+                            <div class="flex items-center gap-2">
+                                <span class="w-3 h-3 rounded-full bg-amber-500"></span>
+                                <span class="text-slate-600">הנחת קופון (ללקוח):</span>
+                            </div>
+                            <span id="legend-coupon-val" class="font-bold text-slate-800">10.0%</span>
+                        </div>
+                        <div class="flex justify-between items-center text-sm">
+                            <div class="flex items-center gap-2">
+                                <span class="w-3 h-3 rounded-full bg-emerald-500"></span>
+                                <span class="text-slate-600">העמלה שלך (מתוך היתרה):</span>
+                            </div>
+                            <span id="legend-commission-val" class="font-bold text-slate-800">9.0%</span>
+                        </div>
+                        <div class="flex justify-between items-center text-sm pt-2 border-t border-slate-100">
+                            <div class="flex items-center gap-2">
+                                <span class="w-3 h-3 rounded-full bg-indigo-600"></span>
+                                <span class="text-slate-600 font-bold">נשאר לעסק (שולי רווח):</span>
+                            </div>
+                            <span id="legend-margin-val" class="font-bold text-indigo-600">81.0%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Scenario Matrix / Quick Guide -->
+        <div class="mt-8 bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+            <h3 class="text-lg font-bold text-indigo-950 mb-4">טבלת השוואה מהירה (סימולציות נפוצות)</h3>
+            <p class="text-slate-500 text-sm mb-4">כאן תוכל לראות כמה נשאר לבית העסק בשילובים פופולריים שונים של קופונים ועמלות:</p>
+            
+            <div class="overflow-x-auto">
+                <table class="w-full text-right text-sm">
+                    <thead>
+                        <tr class="bg-slate-50 border-b border-slate-100">
+                            <th class="p-3 font-semibold text-slate-700">קופון הנחה</th>
+                            <th class="p-3 font-semibold text-slate-700">אחוז עמלה מהיתרה</th>
+                            <th class="p-3 font-semibold text-slate-700 text-emerald-600">עמלה בפועל מהמחיר המלא</th>
+                            <th class="p-3 font-semibold text-slate-700 text-indigo-600">רווח סופי לבית העסק</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        <tr class="hover:bg-slate-50/50">
+                            <td class="p-3">5%</td>
+                            <td class="p-3">10%</td>
+                            <td class="p-3 text-emerald-600 font-medium">9.5%</td>
+                            <td class="p-3 text-indigo-600 font-bold">85.5%</td>
+                        </tr>
+                        <tr class="hover:bg-slate-50/50 bg-slate-50/20">
+                            <td class="p-3">10%</td>
+                            <td class="p-3">10%</td>
+                            <td class="p-3 text-emerald-600 font-medium">9.0%</td>
+                            <td class="p-3 text-indigo-600 font-bold">81.0%</td>
+                        </tr>
+                        <tr class="hover:bg-slate-50/50">
+                            <td class="p-3">15%</td>
+                            <td class="p-3">10%</td>
+                            <td class="p-3 text-emerald-600 font-medium">8.5%</td>
+                            <td class="p-3 text-indigo-600 font-bold">76.5%</td>
+                        </tr>
+                        <tr class="hover:bg-slate-50/50 bg-slate-50/20">
+                            <td class="p-3">10%</td>
+                            <td class="p-3">15%</td>
+                            <td class="p-3 text-emerald-600 font-medium">13.5%</td>
+                            <td class="p-3 text-indigo-600 font-bold">76.5%</td>
+                        </tr>
+                        <tr class="hover:bg-slate-50/50">
+                            <td class="p-3">15%</td>
+                            <td class="p-3">15%</td>
+                            <td class="p-3 text-emerald-600 font-medium">12.75%</td>
+                            <td class="p-3 text-indigo-600 font-bold">72.25%</td>
+                        </tr>
+                        <tr class="hover:bg-slate-50/50 bg-slate-50/20">
+                            <td class="p-3">20%</td>
+                            <td class="p-3">20%</td>
+                            <td class="p-3 text-emerald-600 font-medium">16.0%</td>
+                            <td class="p-3 text-indigo-600 font-bold">64.0%</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Formulas & explanation footer -->
+        <div class="mt-6 text-center text-xs text-slate-400 leading-relaxed">
+            נוסחת החישוב: <code class="bg-slate-100 px-1 py-0.5 rounded text-slate-600">שולי רווח = (1 - קופון) * (1 - עמלה)</code> | העמלה מחושבת מהיתרה לאחר ההנחה.
+        </div>
+    </div>
+
+    <!-- App Logic Scripts -->
+    <script>
+        // State variables
+        let currentMode = 'margin'; // 'margin', 'commission', 'coupon'
+
+        // DOM Elements
+        const param1 = document.getElementById('param-1');
+        const param2 = document.getElementById('param-2');
+        const paramTarget = document.getElementById('param-target');
+
+        const valParam1 = document.getElementById('val-param-1');
+        const valParam2 = document.getElementById('val-param-2');
+        const valParamTarget = document.getElementById('val-param-target');
+
+        const labelParam1 = document.getElementById('label-param-1');
+        const labelParam2 = document.getElementById('label-param-2');
+
+        const paramGroup1 = document.getElementById('param-group-1');
+        const paramGroup2 = document.getElementById('param-group-2');
+        const paramGroupTarget = document.getElementById('param-group-target');
+
+        const resultTitle = document.getElementById('result-title');
+        const resultMainValue = document.getElementById('result-main-value');
+        const resultExplainer = document.getElementById('result-explainer');
+
+        // Numeric Manual Inputs
+        const numCoupon = document.getElementById('num-coupon');
+        const numCommission = document.getElementById('num-commission');
+        const numMargin = document.getElementById('num-margin');
+
+        // Visual chart elements
+        const barMargin = document.getElementById('bar-margin');
+        const barCommission = document.getElementById('bar-commission');
+        const barCoupon = document.getElementById('bar-coupon');
+
+        const legendCouponVal = document.getElementById('legend-coupon-val');
+        const legendCommissionVal = document.getElementById('legend-commission-val');
+        const legendMarginVal = document.getElementById('legend-margin-val');
+
+        // Toggle Modes
+        function switchMode(mode) {
+            currentMode = mode;
+            
+            // UI Button styling resets
+            const buttons = ['margin', 'commission', 'coupon'];
+            buttons.forEach(b => {
+                const btn = document.getElementById(`btn-mode-${b}`);
+                if (b === mode) {
+                    btn.className = "py-2.5 px-2 text-xs md:text-sm font-medium rounded-lg transition-all duration-200 text-center bg-white text-indigo-700 shadow-sm font-bold";
+                } else {
+                    btn.className = "py-2.5 px-2 text-xs md:text-sm font-medium rounded-lg transition-all duration-200 text-center text-slate-600 hover:bg-white/50";
+                }
+            });
+
+            // Adjust ranges limits and defaults based on mode
+            if (mode === 'margin') {
+                // Input: Coupon and Commission -> Output: Margin
+                labelParam1.innerText = "אחוז הנחת קופון:";
+                labelParam2.innerText = "אחוז העמלה שלך (מהיתרה):";
+                
+                paramGroup1.classList.remove('hidden');
+                paramGroup2.classList.remove('hidden');
+                paramGroupTarget.classList.add('hidden');
+
+                param1.min = "0"; param1.max = "90";
+                param2.min = "0"; param2.max = "90";
+                
+                resultTitle.innerText = "שולי רווח סופיים לעסק";
+                
+            } else if (mode === 'commission') {
+                // Input: Coupon and Target Margin -> Output: Commission
+                labelParam1.innerText = "אחוז הנחת קופון:";
+                
+                paramGroup1.classList.remove('hidden');
+                paramGroup2.classList.add('hidden'); // We will calculate this
+                paramGroupTarget.classList.remove('hidden');
+
+                param1.min = "0"; param1.max = "90";
+                
+                resultTitle.innerText = "עמלה מקסימלית שתוכל לבקש";
+
+            } else if (mode === 'coupon') {
+                // Input: Commission and Target Margin -> Output: Coupon
+                labelParam1.innerText = "אחוז העמלה שלך (מהיתרה):";
+                
+                paramGroup1.classList.remove('hidden'); // Acts as commission in this mode
+                paramGroup2.classList.add('hidden');
+                paramGroupTarget.classList.remove('hidden');
+
+                param1.min = "0"; param1.max = "90";
+                
+                resultTitle.innerText = "קופון מקסימלי שניתן להציע ללקוח";
+            }
+
+            calculate();
+        }
+
+        // Core Calculator Logic
+        function calculate() {
+            let coupon = 0;
+            let commission = 0;
+            let margin = 0;
+
+            if (currentMode === 'margin') {
+                coupon = parseFloat(param1.value);
+                commission = parseFloat(param2.value);
+
+                // Formula: Margin = (1 - Coupon) * (1 - Commission)
+                margin = (1 - coupon / 100) * (1 - commission / 100) * 100;
+
+                valParam1.innerText = `${coupon.toFixed(1)}%`;
+                valParam2.innerText = `${commission.toFixed(1)}%`;
+
+                // Update manual text fields ONLY if they are not currently being edited/focused
+                if (document.activeElement !== numCoupon) numCoupon.value = coupon.toFixed(1);
+                if (document.activeElement !== numCommission) numCommission.value = commission.toFixed(1);
+                if (document.activeElement !== numMargin) numMargin.value = margin.toFixed(1);
+
+                resultMainValue.innerText = `${margin.toFixed(1)}%`;
+                
+                // Explainer dynamic calculation
+                const priceAfterCoupon = 100 - coupon;
+                const actualCommissionValue = priceAfterCoupon * (commission / 100);
+                resultExplainer.innerHTML = `
+                    על מוצר שמחירו 100 ₪, הלקוח ישלם <strong>${priceAfterCoupon.toFixed(2)} ₪</strong> לאחר ${coupon}% הנחה. 
+                    מתוך היתרה, תועבר אליך עמלה בסך <strong>${actualCommissionValue.toFixed(2)} ₪</strong> (עמלה של ${commission}% מהיתרה), 
+                    ולבית העסק יישארו בסופו של דבר <strong>${margin.toFixed(2)} ₪</strong> רווח.
+                `;
+
+            } else if (currentMode === 'commission') {
+                coupon = parseFloat(param1.value);
+                let targetMargin = parseFloat(paramTarget.value);
+
+                // Limit targetMargin so it cannot be higher than remaining after coupon
+                const maxPossibleMargin = (1 - coupon / 100) * 100;
+                if (targetMargin > maxPossibleMargin) {
+                    targetMargin = maxPossibleMargin;
+                    paramTarget.value = targetMargin;
+                }
+
+                // Margin = (1 - Coupon) * (1 - Commission) 
+                // => (1 - Commission) = Margin / (1 - Coupon)
+                // => Commission = 1 - (Margin / (1 - Coupon))
+                let ratio = (targetMargin / 100) / (1 - coupon / 100);
+                commission = (1 - ratio) * 100;
+                if (commission < 0) commission = 0;
+
+                margin = targetMargin;
+
+                valParam1.innerText = `${coupon.toFixed(1)}%`;
+                valParamTarget.innerText = `${targetMargin.toFixed(1)}%`;
+
+                // Update manual text fields ONLY if they are not currently being edited/focused
+                if (document.activeElement !== numCoupon) numCoupon.value = coupon.toFixed(1);
+                if (document.activeElement !== numCommission) numCommission.value = commission.toFixed(1);
+                if (document.activeElement !== numMargin) numMargin.value = margin.toFixed(1);
+
+                resultMainValue.innerText = `${commission.toFixed(1)}%`;
+
+                const priceAfterCoupon = 100 - coupon;
+                const actualCommissionValue = priceAfterCoupon * (commission / 100);
+                resultExplainer.innerHTML = `
+                    כדו שלבית העסק יישארו <strong>${targetMargin.toFixed(1)}%</strong> שולי רווח, 
+                    כאשר ישנה הנחת קופון של ${coupon}%, העמלה המקסימלית שתוכל לקבל היא <strong>${commission.toFixed(2)}%</strong> מהיתרה 
+                    (שווה ערך ל-<strong>${actualCommissionValue.toFixed(2)} ₪</strong> מכל 100 ₪ מקוריים).
+                `;
+
+            } else if (currentMode === 'coupon') {
+                commission = parseFloat(param1.value); // Input param 1 is commission in this mode
+                let targetMargin = parseFloat(paramTarget.value);
+
+                // Limit targetMargin so it cannot be higher than remaining after commission
+                const maxPossibleMargin = (1 - commission / 100) * 100;
+                if (targetMargin > maxPossibleMargin) {
+                    targetMargin = maxPossibleMargin;
+                    paramTarget.value = targetMargin;
+                }
+
+                // Margin = (1 - Coupon) * (1 - Commission)
+                // => (1 - Coupon) = Margin / (1 - Commission)
+                // => Coupon = 1 - (Margin / (1 - Commission))
+                let ratio = (targetMargin / 100) / (1 - commission / 100);
+                coupon = (1 - ratio) * 100;
+                if (coupon < 0) coupon = 0;
+
+                margin = targetMargin;
+
+                valParam1.innerText = `${commission.toFixed(1)}%`;
+                valParamTarget.innerText = `${targetMargin.toFixed(1)}%`;
+
+                // Update manual text fields ONLY if they are not currently being edited/focused
+                if (document.activeElement !== numCoupon) numCoupon.value = coupon.toFixed(1);
+                if (document.activeElement !== numCommission) numCommission.value = commission.toFixed(1);
+                if (document.activeElement !== numMargin) numMargin.value = margin.toFixed(1);
+
+                resultMainValue.innerText = `${coupon.toFixed(1)}%`;
+
+                const priceAfterCoupon = 100 - coupon;
+                const actualCommissionValue = priceAfterCoupon * (commission / 100);
+                resultExplainer.innerHTML = `
+                    כדי שלבית העסק יישארו <strong>${targetMargin.toFixed(1)}%</strong> שולי רווח, 
+                    כאשר העמלה שלך מוגדרת כ-${commission}% מהיתרה, קופון ההנחה המקסימלי שתוכל להציע ללקוחות הוא <strong>${coupon.toFixed(2)}%</strong> 
+                    (הלקוח ישלם ${priceAfterCoupon.toFixed(2)} ₪).
+                `;
+            }
+
+            updateVisuals(coupon, commission, margin);
+        }
+
+        // Live Visual Bar & Legend Updates
+        function updateVisuals(coupon, commission, margin) {
+            // Actual slice values out of 100% full price:
+            const couponSlice = coupon;
+            const remainingSlice = 100 - coupon;
+            const commissionSlice = remainingSlice * (commission / 100);
+            const marginSlice = remainingSlice - commissionSlice;
+
+            // Prevent UI breaking with negative values or total > 100
+            const total = couponSlice + commissionSlice + marginSlice;
+            
+            // Convert to percentages of the bar width
+            const marginPercent = (marginSlice / total) * 100;
+            const commissionPercent = (commissionSlice / total) * 100;
+            const couponPercent = (couponSlice / total) * 100;
+
+            // Set Widths
+            barMargin.style.width = `${marginPercent}%`;
+            barCommission.style.width = `${commissionPercent}%`;
+            barCoupon.style.width = `${couponPercent}%`;
+
+            // Adjust labels inside the bar (hide if too small)
+            barMargin.innerText = marginPercent > 12 ? `עסק (${marginSlice.toFixed(1)}%)` : `${marginSlice.toFixed(0)}%`;
+            barCommission.innerText = commissionPercent > 12 ? `עמלה (${commissionSlice.toFixed(1)}%)` : `${commissionSlice.toFixed(0)}%`;
+            barCoupon.innerText = couponPercent > 12 ? `הנחה (${couponSlice.toFixed(1)}%)` : `${couponSlice.toFixed(0)}%`;
+
+            if (marginPercent <= 5) barMargin.innerText = '';
+            if (commissionPercent <= 5) barCommission.innerText = '';
+            if (couponPercent <= 5) barCoupon.innerText = '';
+
+            // Update Legend Values
+            legendCouponVal.innerText = `${couponSlice.toFixed(2)}%`;
+            legendCommissionVal.innerText = `${commissionSlice.toFixed(2)}% (${commission.toFixed(1)}% מהיתרה)`;
+            legendMarginVal.innerText = `${marginSlice.toFixed(2)}%`;
+        }
+
+        // Sync manual input values back to sliders
+        function syncInputs(type) {
+            if (type === 'coupon') {
+                let val = parseFloat(numCoupon.value);
+                if (isNaN(val)) return; // Allow empty inputs or typing without immediate crash
+                if (val > 100) val = 100;
+                if (val < 0) val = 0;
+
+                if (currentMode === 'margin' || currentMode === 'commission') {
+                    param1.value = val;
+                }
+            } else if (type === 'commission') {
+                let val = parseFloat(numCommission.value);
+                if (isNaN(val)) return;
+                if (val > 100) val = 100;
+                if (val < 0) val = 0;
+
+                if (currentMode === 'margin') {
+                    param2.value = val;
+                } else if (currentMode === 'coupon') {
+                    param1.value = val; // param 1 is commission in this mode
+                }
+            } else if (type === 'margin') {
+                let val = parseFloat(numMargin.value);
+                if (isNaN(val)) return;
+                if (val > 100) val = 100;
+                if (val < 0) val = 0;
+
+                if (currentMode === 'commission' || currentMode === 'coupon') {
+                    paramTarget.value = val;
+                }
+            }
+            calculate();
+        }
+
+        // Format values with decimal on blur (when user finishes editing the field)
+        function formatInputOnBlur(type) {
+            if (type === 'coupon') {
+                let val = parseFloat(numCoupon.value);
+                if (!isNaN(val)) numCoupon.value = val.toFixed(1);
+            } else if (type === 'commission') {
+                let val = parseFloat(numCommission.value);
+                if (!isNaN(val)) numCommission.value = val.toFixed(1);
+            } else if (type === 'margin') {
+                let val = parseFloat(numMargin.value);
+                if (!isNaN(val)) numMargin.value = val.toFixed(1);
+            }
+        }
+
+        // Initialize On Load
+        window.onload = function() {
+            calculate();
+        };
+    </script>
+</body>
+</html>
