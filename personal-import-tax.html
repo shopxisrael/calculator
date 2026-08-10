@@ -73,6 +73,14 @@
   @media(min-width:620px){ .cols-2{grid-template-columns:1fr 1fr} .cols-3{grid-template-columns:1fr 1fr 1fr} }
   .field{min-width:0}
   .hint{font-size:11.5px;color:var(--muted);margin-top:4px;line-height:1.45}
+  .opt{font-weight:400;color:var(--muted);font-size:11px}
+  .check{display:flex;align-items:center;gap:8px;margin:12px 0 0;font-size:13px;font-weight:600;
+    color:#334155;cursor:pointer;user-select:none}
+  .check input{width:16px;height:16px;accent-color:var(--brand);cursor:pointer;flex:0 0 auto}
+  #extrasRow{margin-top:10px}
+  table.kv tr.sum td{border-top:1px solid var(--line);padding-top:8px}
+  table.kv tr.fee td{color:var(--muted);font-weight:500}
+  table.kv tr.fee td:last-child{color:var(--ink)}
   .hidden{display:none!important}
 
   /* ---------- חיפוש ---------- */
@@ -206,6 +214,25 @@
             </div>
           </div>
 
+          <label class="check">
+            <input type="checkbox" id="useExtras">
+            <span>הוספת עלויות משלוח וביטוח לחישוב <span class="opt">(לא חובה)</span></span>
+          </label>
+
+          <div id="extrasRow" class="hidden">
+            <div class="grid cols-2">
+              <div class="field">
+                <label for="shipping">עלות משלוח</label>
+                <input type="number" id="shipping" min="0" step="0.01" placeholder="0.00">
+              </div>
+              <div class="field">
+                <label for="insurance">עלות ביטוח</label>
+                <input type="number" id="insurance" min="0" step="0.01" placeholder="0.00">
+              </div>
+            </div>
+            <div class="hint" id="cifHint"></div>
+          </div>
+
           <div class="rates" id="ratesBar">
             <span class="spinner hidden" id="ratesSpinner"></span>
             <span id="ratesText"></span>
@@ -234,6 +261,10 @@
           <p>בחלק מהמוצרים (טבק, משקאות, בשר ועוד) מתווסף סכום קבוע לפי כמות — ק"ג, ליטר, מ"ל, אלף יחידות
              או פריט. במקרים כאלה מופיע בטבלה <strong>"אל"פ"</strong> (אבל לא פחות — נלקח הסכום הגבוה)
              או <strong>"אל"י"</strong> (אבל לא יותר — נלקח הסכום הנמוך). פירוט החישוב המלא מוצג בכל תוצאה.</p>
+          <p><strong>משלוח וביטוח:</strong> ערך המשלוח למכס (CIF) הוא שווי המוצר בתוספת ההובלה והביטוח.
+             בהזמנה עד 75$ ערך החבילה אינו כולל משלוח וביטוח; מעל 75$ הם נחשבים חלק מהשווי לצורך חישוב המס.</p>
+          <p><strong>אגרות:</strong> נוספות לפי ערך המשלוח למכס — <strong>אגרת מחשב</strong> 21 ₪ מעל 100$
+             ועד 1,000$, ו-42 ₪ מעל 1,000$; <strong>אגרת ביטחון</strong> 49 ₪ מעל 500$.</p>
         </div>
       </details>
 
@@ -245,7 +276,7 @@
             <li>המידע מתייחס <strong>ליבוא אישי לשימוש עצמי בלבד</strong>.</li>
             <li>המחשבון אינו תומך בחישוב מסים עבור יבוא לאוטונומיה עבור טובין המופיעים ברשימות A1 ו-A2.</li>
             <li>המחשבון אינו תומך בחישוב מסים עבור יבוא רכב.</li>
-            <li>החישוב אינו כולל אגרות נמל הנדרשות לתשלום ביבוא ימי.</li>
+            <li>החישוב כולל אגרת מחשב ואגרת ביטחון בלבד, ואינו כולל אגרות נמל הנדרשות לתשלום ביבוא ימי.</li>
             <li>החישוב אינו כולל תשלומים אפשריים נוספים, כגון עמלות של עמילי מכס.</li>
             <li>המידע אינו מחייב את המכס, ואינו יכול להחליף את הנתונים שיידרשו עבור הצהרת היבוא שתוגש.</li>
             <li>החישוב מיועד לשימוש כללי בלבד ואינו מיועד לחישובים מורכבים או למקרים מיוחדים. בכל מקרה כזה
@@ -276,7 +307,7 @@
         <h2>המס לתשלום</h2>
         <div class="badge-row hidden" id="badges"></div>
         <div class="hero-num">
-          <div class="lbl">סה"כ מסי יבוא משוערים</div>
+          <div class="lbl">סה"כ מסים ואגרות משוערים</div>
           <div class="amt" id="taxMain">—</div>
           <div class="alt" id="taxAlt">בחרו מוצר והזינו סכום</div>
         </div>
@@ -1008,6 +1039,12 @@
 
   /* ============================== חישוב המס ============================== */
 
+  // אגרות המכס, לפי ערך המשלוח למכס (CIF) בדולר.
+  // אגרת מחשב: מעל 100$ ועד 1,000$ — 21 ₪; מעל 1,000$ — 42 ₪.
+  function computerFee(usd){ return usd > 1000 ? 42 : usd > 100 ? 21 : 0; }
+  // אגרת ביטחון: מעל 500$ — 49 ₪.
+  function securityFee(usd){ return usd > 500 ? 49 : 0; }
+
   function bandOf(usd){
     if (usd <= 75) return {key:"t1", label:"עד 75$"};
     if (usd <= 500) return {key:"t2", label:"מעל 75$ ועד 500$"};
@@ -1015,10 +1052,14 @@
     return {key:"t4", label:"מעל 1,000$"};
   }
 
-  ["amount","qty","rateSel","rateUsd"].forEach(id => {
+  ["amount","qty","rateSel","rateUsd","shipping","insurance"].forEach(id => {
     const el = $(id);
     el.addEventListener("input", calc);
     el.addEventListener("change", calc);
+  });
+  $("useExtras").addEventListener("change", () => {
+    $("extrasRow").classList.toggle("hidden", !$("useExtras").checked);
+    calc();
   });
   $("currency").addEventListener("change", () => { applyRates(); calc(); });
 
@@ -1042,11 +1083,7 @@
     const selRate = cur === "ILS" ? 1 : readRate("rateSel", RATES[cur] && RATES[cur].rate);
     const usdRate = cur === "USD" ? selRate : readRate("rateUsd", RATES.USD && RATES.USD.rate);
 
-    if (!rec){ emptyResult("בחרו מוצר והזינו סכום"); toggleExtras(false); return; }
-
-    // המרות: הכול עובר דרך שקלים, והמדרגה נקבעת לפי השווי בדולר
-    const valueILS = amount * selRate;
-    const valueUSD = usdRate > 0 ? valueILS / usdRate : 0;
+    if (!rec){ emptyResult("בחרו מוצר והזינו סכום"); toggleExtras(false); $("cifHint").textContent = ""; return; }
 
     if (!(selRate > 0) || !(usdRate > 0)){
       toggleExtras(false);
@@ -1055,7 +1092,28 @@
       return;
     }
 
-    const band = bandOf(valueUSD);
+    // המרות: הכול עובר דרך שקלים
+    const useExtras = $("useExtras").checked;
+    const shipILS = useExtras ? toNumber($("shipping").value) * selRate : 0;
+    const insILS  = useExtras ? toNumber($("insurance").value) * selRate : 0;
+    const extrasILS = shipILS + insILS;
+    const goodsILS = amount * selRate;
+    const goodsUSD = goodsILS / usdRate;
+    const cifILS = goodsILS + extrasILS;                    // ערך המשלוח למכס (CIF)
+    const cifUSD = cifILS / usdRate;
+
+    // המדרגה נקבעת לפי שווי הטובין. עד 75$ הובלה וביטוח אינם נכללים בבסיס המס;
+    // מעל 75$ הם נחשבים חלק מהשווי לצורך חישוב המס.
+    const band = bandOf(goodsUSD);
+    const withExtras = goodsUSD > 75 && extrasILS > 0;
+    const valueILS = withExtras ? cifILS : goodsILS;
+    const valueUSD = valueILS / usdRate;
+
+    $("cifHint").textContent = !(goodsILS > 0) ? ""
+      : goodsUSD > 75
+        ? "מעל 75$ — משלוח וביטוח נכללים בשווי לצורך חישוב המס (CIF)."
+        : "עד 75$ — משלוח וביטוח אינם נכללים בשווי לצורך חישוב המס.";
+
     const parsed = parseTax(rec[band.key]);
 
     // שדה כמות מוצג רק כשצריך (טבק/אלכוהול/יחידות)
@@ -1099,24 +1157,44 @@
     const best = acc;
     const tax = amount > 0 ? best.value : 0;
 
-    $("taxMain").textContent = parsed.exempt && tax === 0 ? "פטור ממס" : nfILS.format(tax);
-    $("taxAlt").textContent = amount > 0 && !(parsed.exempt && tax === 0)
-      ? "≈ " + nfUSD.format(usdRate ? tax / usdRate : 0)
-      : (amount > 0 ? "" : "הזינו את סכום ההזמנה לחישוב");
+    // אגרות המכס — לפי ערך המשלוח למכס (CIF)
+    const feeComputer = amount > 0 ? computerFee(cifUSD) : 0;
+    const feeSecurity = amount > 0 ? securityFee(cifUSD) : 0;
+    const fees = feeComputer + feeSecurity;
+    const total = tax + fees;
 
-    const effective = valueILS > 0 ? (tax / valueILS) * 100 : 0;
+    $("taxMain").textContent = total === 0 && parsed.exempt ? "פטור ממס" : nfILS.format(total);
+    $("taxAlt").textContent = amount > 0
+      ? (total === 0 && parsed.exempt ? "ללא מס ואגרות" : "≈ " + nfUSD.format(total / usdRate))
+      : "הזינו את סכום ההזמנה לחישוב";
+
+    const effective = valueILS > 0 ? (total / valueILS) * 100 : 0;
     const rows = [
       ["המוצר", (rec.l3 || rec.l2 || rec.l1)],
-      ["שווי ההזמנה", nfILS.format(valueILS) + " (" + nfUSD.format(valueUSD) + ")"],
-      ["מדרגה", band.label],
-      ["שער", rateLine(cur, selRate, usdRate)],
-      ["סך המסים בטבלה", (parsed.raw || "—") + (isVatOnly(parsed) ? ' (מע"מ בלבד)' : "")],
-      ["מס אפקטיבי", nfNum.format(effective) + "%"]
+      ["שווי הטובין", nfILS.format(goodsILS) + " (" + nfUSD.format(goodsUSD) + ")"]
     ];
-    if (parsed.needsQty) rows.splice(2, 0, ["כמות", nfNum.format(qty) + " " + parsed.unit.label]);
-    rows.push(["סה\"כ לתשלום", nfILS.format(valueILS + tax)]);
-    $("kv").innerHTML = rows.map(r =>
-      "<tr><td>" + esc(r[0]) + "</td><td>" + esc(r[1]) + "</td></tr>").join("");
+    if (extrasILS > 0){
+      if (shipILS > 0) rows.push(["משלוח", nfILS.format(shipILS)]);
+      if (insILS > 0) rows.push(["ביטוח", nfILS.format(insILS)]);
+      rows.push(["ערך המשלוח למכס", nfILS.format(cifILS) + " (" + nfUSD.format(cifUSD) + ")"]);
+      // בסיס המס מוצג בנפרד רק כשהוא שונה מערך המשלוח (כלומר עד 75$)
+      if (!withExtras) rows.push(["בסיס לחישוב המס", nfILS.format(valueILS) + " (ללא משלוח וביטוח)"]);
+    }
+    if (parsed.needsQty) rows.push(["כמות", nfNum.format(qty) + " " + parsed.unit.label]);
+    rows.push(["מדרגה", band.label]);
+    rows.push(["שער", rateLine(cur, selRate, usdRate)]);
+    rows.push(["סך המסים בטבלה", (parsed.raw || "—") + (isVatOnly(parsed) ? ' (מע"מ בלבד)' : "")]);
+
+    const feeRows = [["מס", nfILS.format(tax)]];
+    if (feeComputer) feeRows.push(["אגרת מחשב", nfILS.format(feeComputer)]);
+    if (feeSecurity) feeRows.push(["אגרת ביטחון", nfILS.format(feeSecurity)]);
+    if (fees) feeRows.push(["סה\"כ מסים ואגרות", nfILS.format(total)]);
+    feeRows.push(["שיעור אפקטיבי", nfNum.format(effective) + "%"]);
+
+    $("kv").innerHTML =
+      rows.map(r => "<tr><td>" + esc(r[0]) + "</td><td>" + esc(r[1]) + "</td></tr>").join("") +
+      feeRows.map(r => '<tr class="fee"><td>' + esc(r[0]) + "</td><td>" + esc(r[1]) + "</td></tr>").join("") +
+      '<tr class="sum"><td>סה"כ לתשלום</td><td>' + esc(nfILS.format(cifILS + total)) + "</td></tr>";
 
     // פירוט החישוב
     const lines = results.map((r, i) => {
