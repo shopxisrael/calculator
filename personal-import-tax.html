@@ -6,254 +6,293 @@
 <title>מחשבון מסי יבוא אישי</title>
 <style>
   :root{
-    --bg:#f4f6fb;
+    --bg:#eef1f8;
     --card:#ffffff;
-    --ink:#101828;
-    --muted:#667085;
-    --line:#e4e7ec;
+    --ink:#0f172a;
+    --muted:#64748b;
+    --line:#e2e8f0;
     --brand:#1f5fd6;
     --brand-dark:#16408f;
     --brand-soft:#eaf1ff;
-    --good:#067647;
-    --good-soft:#e7f7ef;
-    --warn:#b54708;
-    --warn-soft:#fff4e5;
+    --good:#0b7a4b;
+    --warn-soft:#fff7ed;
+    --warn-line:#fed7aa;
+    --warn-ink:#7c2d12;
     --bad:#b42318;
     --bad-soft:#fee4e2;
-    --radius:16px;
-    --shadow:0 1px 2px rgba(16,24,40,.05), 0 12px 32px -12px rgba(16,24,40,.18);
+    --r:14px;
+    --shadow:0 1px 2px rgba(15,23,42,.04), 0 8px 24px -12px rgba(15,23,42,.15);
   }
   *{box-sizing:border-box}
   html,body{margin:0;padding:0}
   body{
     font-family:"Segoe UI",Rubik,Arial,"Noto Sans Hebrew",sans-serif;
-    background:var(--bg); color:var(--ink); line-height:1.6;
+    background:var(--bg);color:var(--ink);line-height:1.55;font-size:15px;
     -webkit-font-smoothing:antialiased;
   }
-  .wrap{max-width:960px;margin:0 auto;padding:24px 16px 64px}
-  header.hero{
-    background:linear-gradient(135deg,var(--brand-dark),var(--brand));
-    color:#fff;border-radius:var(--radius);padding:28px 24px;box-shadow:var(--shadow);
+  .wrap{max-width:1080px;margin:0 auto;padding:18px 14px 40px}
+
+  /* ---------- כותרת ---------- */
+  .hero{
+    display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;
+    background:linear-gradient(120deg,var(--brand-dark),var(--brand));
+    color:#fff;border-radius:var(--r);padding:16px 20px;box-shadow:var(--shadow);
   }
-  header.hero h1{margin:0 0 6px;font-size:26px;letter-spacing:-.02em}
-  header.hero p{margin:0;opacity:.9;font-size:15px}
-  header.hero .updated{margin-top:10px;font-size:13px;opacity:.85}
-  .card{
-    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
-    padding:20px;margin-top:18px;box-shadow:var(--shadow);
+  .hero h1{margin:0;font-size:21px;letter-spacing:-.02em}
+  .hero p{margin:2px 0 0;opacity:.88;font-size:13px}
+  .stamp{
+    display:inline-flex;align-items:center;gap:7px;background:rgba(255,255,255,.16);
+    border:1px solid rgba(255,255,255,.28);border-radius:999px;padding:6px 13px;
+    font-size:13px;font-weight:600;white-space:nowrap;backdrop-filter:blur(2px);
   }
-  .card h2{margin:0 0 4px;font-size:17px}
-  .card .sub{margin:0 0 16px;color:var(--muted);font-size:13.5px}
-  .step{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;
-    border-radius:50%;background:var(--brand-soft);color:var(--brand-dark);font-size:13px;font-weight:700;
-    margin-left:8px;vertical-align:middle}
-  label{display:block;font-size:13.5px;font-weight:600;margin:0 0 6px;color:#344054}
-  select,input[type=text],input[type=number],textarea{
-    width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:#fff;
-    font:inherit;color:inherit;transition:border-color .15s, box-shadow .15s;
+  .stamp .dot{width:8px;height:8px;border-radius:50%;background:#4ade80;flex:0 0 auto}
+  .stamp.fresh .dot{box-shadow:0 0 0 0 rgba(74,222,128,.7);animation:pulse 2s infinite}
+  .stamp.stale .dot{background:#fbbf24}
+  @keyframes pulse{70%{box-shadow:0 0 0 7px rgba(74,222,128,0)}100%{box-shadow:0 0 0 0 rgba(74,222,128,0)}}
+
+  /* ---------- פריסה ---------- */
+  .layout{display:grid;gap:14px;margin-top:14px;align-items:start}
+  @media(min-width:900px){ .layout{grid-template-columns:1fr 344px} }
+  .col{display:grid;gap:14px;align-content:start;min-width:0}
+  @media(min-width:900px){ .col-side{position:sticky;top:14px} }
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);
+    padding:16px;box-shadow:var(--shadow)}
+  .card > h2{margin:0 0 12px;font-size:13px;font-weight:700;color:var(--muted);
+    letter-spacing:.04em;display:flex;align-items:center;gap:7px}
+  .card > h2::before{content:"";width:3px;height:13px;border-radius:2px;background:var(--brand)}
+
+  label{display:block;font-size:12.5px;font-weight:600;margin:0 0 5px;color:#334155}
+  select,input[type=text],input[type=number]{
+    width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:10px;background:#fff;
+    font:inherit;font-size:14px;color:inherit;transition:border-color .15s,box-shadow .15s;
   }
-  select:focus,input:focus,textarea:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 3px rgba(31,95,214,.15)}
-  select:disabled,input:disabled{background:#f9fafb;color:#98a2b3;cursor:not-allowed}
-  .grid{display:grid;gap:14px}
-  @media(min-width:700px){ .grid.cols-3{grid-template-columns:repeat(3,1fr)} .grid.cols-2{grid-template-columns:repeat(2,1fr)} }
+  select:focus,input:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 3px rgba(31,95,214,.14)}
+  select:disabled,input:disabled{background:#f8fafc;color:#94a3b8}
+  .grid{display:grid;gap:11px}
+  @media(min-width:620px){ .cols-2{grid-template-columns:1fr 1fr} .cols-3{grid-template-columns:1fr 1fr 1fr} }
   .field{min-width:0}
-  .hint{font-size:12.5px;color:var(--muted);margin-top:6px}
-  button{
-    font:inherit;font-weight:600;border-radius:10px;border:1px solid transparent;cursor:pointer;
-    padding:10px 16px;transition:filter .15s, background .15s;
-  }
-  button:hover{filter:brightness(.96)}
-  .btn-primary{background:var(--brand);color:#fff}
-  .btn-ghost{background:#fff;border-color:var(--line);color:#344054}
-  .status{display:flex;align-items:center;gap:10px;font-size:13.5px;padding:10px 12px;border-radius:10px;
-    background:var(--brand-soft);color:var(--brand-dark);border:1px solid #d3e2ff}
-  .status.err{background:var(--bad-soft);color:var(--bad);border-color:#fdd9d5}
-  .status.ok{background:var(--good-soft);color:var(--good);border-color:#c9eeda}
-  .spinner{width:15px;height:15px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;
-    animation:spin .8s linear infinite;flex:0 0 auto}
-  @keyframes spin{to{transform:rotate(360deg)}}
-  .search-wrap{position:relative}
-  .results{position:absolute;z-index:30;inset-inline:0;top:calc(100% + 6px);background:#fff;border:1px solid var(--line);
-    border-radius:12px;box-shadow:var(--shadow);max-height:300px;overflow:auto;display:none}
-  .results.open{display:block}
-  .results button{display:block;width:100%;text-align:start;background:none;border:0;border-bottom:1px solid #f2f4f7;
-    padding:9px 12px;font-weight:500;border-radius:0}
-  .results button:hover{background:var(--brand-soft)}
-  .results .r1{font-size:14px}
-  .results .r2{font-size:12px;color:var(--muted)}
-  .result-hero{background:linear-gradient(135deg,#0b7a4b,#12a06a);color:#fff;border-radius:14px;padding:18px 20px}
-  .result-hero .lbl{font-size:13.5px;opacity:.92}
-  .result-hero .amt{font-size:34px;font-weight:800;letter-spacing:-.02em;line-height:1.2;margin-top:2px}
-  .result-hero .alt{font-size:13.5px;opacity:.92;margin-top:2px}
-  table.kv{width:100%;border-collapse:collapse;margin-top:14px;font-size:14px}
-  table.kv td{padding:9px 4px;border-bottom:1px solid var(--line);vertical-align:top}
-  table.kv td:first-child{color:var(--muted);width:44%}
-  table.kv td:last-child{font-weight:600}
-  .chip{display:inline-block;background:var(--brand-soft);color:var(--brand-dark);border-radius:999px;
-    padding:2px 10px;font-size:12.5px;font-weight:600}
-  .note{margin-top:14px;background:var(--warn-soft);border:1px solid #fde4c8;color:#7a3c06;
-    border-radius:12px;padding:12px 14px;font-size:13.5px;white-space:pre-wrap}
-  .note h3{margin:0 0 4px;font-size:14px}
-  .formula{background:#f9fafb;border:1px dashed var(--line);border-radius:10px;padding:10px 12px;
-    font-size:13px;color:#475467;margin-top:12px;white-space:pre-wrap;word-break:break-word}
-  .muted-box{font-size:12.5px;color:var(--muted);margin-top:18px;line-height:1.7}
-  .terms h2{font-size:15px}
-  .terms .sub{font-size:13px;color:var(--muted);margin-bottom:0}
-  .terms-list{margin:10px 0 0;padding-inline-start:20px;font-size:13px;color:var(--muted);line-height:1.75}
-  .terms-list li{margin-bottom:6px}
-  .terms-list strong{color:#344054}
+  .hint{font-size:11.5px;color:var(--muted);margin-top:4px;line-height:1.45}
   .hidden{display:none!important}
-  .rates{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
-    margin-top:14px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:#fbfcfe;
-    font-size:13px;color:#475467}
-  .rates.err{background:var(--warn-soft);border-color:#fde4c8;color:#7a3c06}
-  .rates-main{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0}
+
+  /* ---------- חיפוש ---------- */
+  .search-wrap{position:relative;margin-bottom:12px}
+  .results{position:absolute;z-index:30;inset-inline:0;top:calc(100% + 5px);background:#fff;
+    border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);max-height:270px;
+    overflow:auto;display:none}
+  .results.open{display:block}
+  .results button{display:block;width:100%;text-align:start;background:none;border:0;
+    border-bottom:1px solid #f1f5f9;padding:8px 12px;font:inherit;cursor:pointer}
+  .results button:hover{background:var(--brand-soft)}
+  .results .r1{font-size:13.5px;font-weight:600}
+  .results .r2{font-size:11.5px;color:var(--muted)}
+
+  /* ---------- שערים ---------- */
+  .rates{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:11px;
+    padding:8px 11px;border:1px solid var(--line);border-radius:10px;background:#f8fafc;
+    font-size:12px;color:var(--muted)}
+  .rates.err{background:var(--warn-soft);border-color:var(--warn-line);color:var(--warn-ink)}
   .rates b{color:var(--ink);font-variant-numeric:tabular-nums}
-  .rates .sep{color:#98a2b3}
-  a{color:var(--brand)}
-  .badge-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+  .rates .sep{color:#cbd5e1}
+  .spinner{width:13px;height:13px;border:2px solid currentColor;border-top-color:transparent;
+    border-radius:50%;animation:spin .8s linear infinite;flex:0 0 auto}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* ---------- תוצאה ---------- */
+  .result .hero-num{background:linear-gradient(135deg,#0b7a4b,#12a06a);color:#fff;
+    border-radius:12px;padding:14px 16px;text-align:center}
+  .result.empty .hero-num{background:#f1f5f9;color:var(--muted)}
+  .hero-num .lbl{font-size:12px;opacity:.92}
+  .hero-num .amt{font-size:30px;font-weight:800;letter-spacing:-.02em;line-height:1.15;margin-top:1px;
+    font-variant-numeric:tabular-nums}
+  .hero-num .alt{font-size:12px;opacity:.92;margin-top:1px}
+  .badge-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+  .chip{display:inline-block;background:var(--brand-soft);color:var(--brand-dark);border-radius:999px;
+    padding:2px 9px;font-size:11.5px;font-weight:600}
+  table.kv{width:100%;border-collapse:collapse;margin-top:11px;font-size:13px}
+  table.kv td{padding:6px 2px;border-bottom:1px solid #f1f5f9;vertical-align:top}
+  table.kv tr:last-child td{border-bottom:0;padding-top:9px;font-size:14px}
+  table.kv td:first-child{color:var(--muted);width:40%;font-weight:500}
+  table.kv td:last-child{font-weight:600;text-align:end}
+  .note{margin-top:11px;background:var(--warn-soft);border:1px solid var(--warn-line);
+    color:var(--warn-ink);border-radius:10px;padding:9px 11px;font-size:12px;white-space:pre-wrap}
+  .note h3{margin:0 0 3px;font-size:12px}
+
+  /* ---------- מקופלים ---------- */
+  details.acc{background:var(--card);border:1px solid var(--line);border-radius:var(--r);
+    box-shadow:var(--shadow);overflow:hidden}
+  details.acc > summary{cursor:pointer;list-style:none;padding:12px 16px;font-size:13.5px;
+    font-weight:600;color:#334155;display:flex;align-items:center;gap:8px;user-select:none}
+  details.acc > summary::-webkit-details-marker{display:none}
+  details.acc > summary::before{content:"›";transform:rotate(180deg);transition:transform .18s;
+    color:var(--brand);font-size:17px;line-height:1;font-weight:700}
+  details.acc[open] > summary::before{transform:rotate(270deg)}
+  details.acc > summary:hover{background:#f8fafc}
+  .acc-body{padding:0 16px 14px;font-size:12.5px;color:var(--muted);line-height:1.7}
+  .acc-body p{margin:0 0 8px}
+  .acc-body ul{margin:0;padding-inline-start:18px}
+  .acc-body li{margin-bottom:5px}
+  .acc-body strong{color:#334155}
+  .formula{background:#f8fafc;border:1px dashed var(--line);border-radius:9px;padding:9px 11px;
+    font-size:11.5px;color:#475569;white-space:pre-wrap;word-break:break-word;line-height:1.6}
+
+  .status{display:flex;align-items:center;gap:9px;font-size:13px;padding:9px 12px;border-radius:10px;
+    background:var(--bad-soft);color:var(--bad);border:1px solid #fdd9d5}
+  .foot{text-align:center;font-size:11.5px;color:var(--muted);margin-top:16px}
 </style>
 </head>
 <body>
 <div class="wrap">
 
   <header class="hero">
-    <h1>מחשבון מסי יבוא אישי</h1>
-    <p>מע"מ + מכס + מס קנייה — לפי טבלת המסים של רשות המסים ושערי בנק ישראל</p>
-    <p class="updated hidden" id="updatedLine"></p>
+    <div>
+      <h1>מחשבון מסי יבוא אישי</h1>
+      <p>מע"מ, מכס ומס קנייה — לפי טבלת רשות המסים ושערי בנק ישראל</p>
+    </div>
+    <span class="stamp hidden" id="updatedLine"><span class="dot"></span><span id="updatedText"></span></span>
   </header>
 
-  <!-- טעינת נתונים -->
-  <section class="card" id="loaderCard">
+  <div class="card hidden" id="loaderCard">
     <div id="status" class="status"><span class="spinner"></span><span id="statusText">טוען…</span></div>
-  </section>
+  </div>
 
-  <!-- בחירת מוצר -->
-  <section class="card hidden" id="pickCard">
-    <h2><span class="step">1</span>בחירת המוצר</h2>
-    <p class="sub">בחרו קטגוריה ← קטגוריה משנית ← מוצר, או חפשו ישירות.</p>
+  <div class="layout">
+    <div class="col">
 
-    <div class="field search-wrap" style="margin-bottom:14px">
-      <label for="search">חיפוש מהיר</label>
-      <input type="text" id="search" placeholder="לדוגמה: נעליים, טלפון, יין…" autocomplete="off">
-      <div class="results" id="results"></div>
+      <section class="card">
+        <h2>מה הזמנתם?</h2>
+
+        <div id="pickCard" class="hidden">
+          <div class="field search-wrap">
+            <input type="text" id="search" placeholder="🔎 חיפוש מוצר — לדוגמה: אייפון, נעליים, יין" autocomplete="off">
+            <div class="results" id="results"></div>
+          </div>
+
+          <div class="grid cols-3">
+            <div class="field">
+              <label for="l1">קטגוריה</label>
+              <select id="l1"><option value="">— בחרו —</option></select>
+            </div>
+            <div class="field">
+              <label for="l2">תת-קטגוריה</label>
+              <select id="l2" disabled><option value="">— בחרו —</option></select>
+            </div>
+            <div class="field">
+              <label for="l3">מוצר</label>
+              <select id="l3" disabled><option value="">— בחרו —</option></select>
+            </div>
+          </div>
+        </div>
+
+        <div id="amountCard" class="hidden">
+          <div class="grid cols-3" style="margin-top:12px">
+            <div class="field">
+              <label for="amount">סכום ההזמנה</label>
+              <input type="number" id="amount" min="0" step="0.01" placeholder="0.00">
+            </div>
+            <div class="field">
+              <label for="currency">מטבע</label>
+              <select id="currency">
+                <option value="USD">דולר ($)</option>
+                <option value="ILS">שקל (₪)</option>
+                <option value="EUR">אירו (€)</option>
+                <option value="GBP">לירה שטרלינג (£)</option>
+              </select>
+            </div>
+            <div class="field hidden" id="qtyField">
+              <label for="qty" id="qtyLabel">כמות</label>
+              <input type="number" id="qty" min="0" step="0.01" value="1">
+              <div class="hint" id="qtyHint"></div>
+            </div>
+          </div>
+
+          <div class="rates" id="ratesBar">
+            <span class="spinner hidden" id="ratesSpinner"></span>
+            <span id="ratesText"></span>
+          </div>
+
+          <div class="grid cols-2 hidden" id="extraRow" style="margin-top:11px">
+            <div class="field hidden" id="rateSelField">
+              <label for="rateSel" id="rateSelLabel">שער המרה</label>
+              <input type="number" id="rateSel" min="0" step="0.0001">
+              <div class="hint" id="rateSelHint"></div>
+            </div>
+            <div class="field hidden" id="rateUsdField">
+              <label for="rateUsd">שער דולר / ₪</label>
+              <input type="number" id="rateUsd" min="0" step="0.0001">
+              <div class="hint">קובע את מדרגת המס הדולרית.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <details class="acc">
+        <summary>איך המס מחושב?</summary>
+        <div class="acc-body">
+          <p>סך המסים כולל <strong>מע"מ (כיום 18%), מכס ומס קנייה</strong>. מדרגת המס נקבעת לפי שווי ההזמנה
+             בדולר, לפי השער היציג של בנק ישראל: עד 75$ / 75–500$ / 500–1,000$ / מעל 1,000$.</p>
+          <p>בחלק מהמוצרים (טבק, משקאות, בשר ועוד) מתווסף סכום קבוע לפי כמות — ק"ג, ליטר, מ"ל, אלף יחידות
+             או פריט. במקרים כאלה מופיע בטבלה <strong>"אל"פ"</strong> (אבל לא פחות — נלקח הסכום הגבוה)
+             או <strong>"אל"י"</strong> (אבל לא יותר — נלקח הסכום הנמוך). פירוט החישוב המלא מוצג בכל תוצאה.</p>
+        </div>
+      </details>
+
+      <details class="acc">
+        <summary>תנאי שימוש והגבלת אחריות</summary>
+        <div class="acc-body">
+          <ul>
+            <li>המידע המוצג נכון ליום הפקת הנתונים בלבד. תאריך העדכון האחרון מוצג בראש הדף.</li>
+            <li>המידע מתייחס <strong>ליבוא אישי לשימוש עצמי בלבד</strong>.</li>
+            <li>המחשבון אינו תומך בחישוב מסים עבור יבוא לאוטונומיה עבור טובין המופיעים ברשימות A1 ו-A2.</li>
+            <li>המחשבון אינו תומך בחישוב מסים עבור יבוא רכב.</li>
+            <li>החישוב אינו כולל אגרות נמל הנדרשות לתשלום ביבוא ימי.</li>
+            <li>החישוב אינו כולל תשלומים אפשריים נוספים, כגון עמלות של עמילי מכס.</li>
+            <li>המידע אינו מחייב את המכס, ואינו יכול להחליף את הנתונים שיידרשו עבור הצהרת היבוא שתוגש.</li>
+            <li>החישוב מיועד לשימוש כללי בלבד ואינו מיועד לחישובים מורכבים או למקרים מיוחדים. בכל מקרה כזה
+                יש לפנות לרשות המסים.</li>
+            <li>המחשבון אינו קשור לרשות המסים ואינו מופעל מטעמה או מטעם בנק ישראל. הנתונים נאספים ממקורות
+                ציבוריים ומוצגים כפי שהם.</li>
+            <li>אין באמור ייעוץ מס, ייעוץ מכס או ייעוץ משפטי, ואין להסתמך עליו לצורך קבלת החלטות.</li>
+            <li>המס בפועל נקבע על ידי המכס בלבד, לפי הסיווג המדויק של הפריט. סיווג שונה עשוי להוביל לשיעור
+                מס שונה מזה המוצג כאן.</li>
+            <li>החישוב מתבצע לפי שווי ההזמנה שהוזן על ידכם. המכס עשוי לקבוע שווי אחר, ולכלול בו גם הוצאות
+                הובלה וביטוח.</li>
+            <li>המכס מחשב לפי שער המכס שלו, שעשוי להיות שונה מהשער היציג של בנק ישראל המשמש כאן.</li>
+            <li>המחשבון אינו בודק מגבלות כמות, איסורי יבוא או דרישות רישוי ותקינה (למשל טבק, אלכוהול,
+                תרופות, ציוד אלחוטי).</li>
+            <li>ייתכנו טעויות, שגיאות חישוב או אי-דיוקים בנתונים ובהצגתם. ט.ל.ח — טעות לעולם חוזרת.</li>
+            <li>השימוש במחשבון הוא באחריות המשתמש בלבד. לא תחול על מפעילי המחשבון או על מי מטעמם אחריות
+                לכל נזק, הפסד או הוצאה, ישירים או עקיפים, שייגרמו כתוצאה מהשימוש בו או מהסתמכות על המידע
+                המוצג בו.</li>
+            <li>עצם השימוש במחשבון מהווה הסכמה לתנאים אלה.</li>
+          </ul>
+        </div>
+      </details>
+
     </div>
 
-    <div class="grid cols-3">
-      <div class="field">
-        <label for="l1">קטגוריה ראשית</label>
-        <select id="l1"><option value="">— בחרו —</option></select>
-      </div>
-      <div class="field">
-        <label for="l2">קטגוריה משנית</label>
-        <select id="l2" disabled><option value="">— בחרו —</option></select>
-      </div>
-      <div class="field">
-        <label for="l3">מוצר</label>
-        <select id="l3" disabled><option value="">— בחרו —</option></select>
-      </div>
+    <div class="col col-side">
+      <section class="card result empty" id="resultCard">
+        <h2>המס לתשלום</h2>
+        <div class="badge-row hidden" id="badges"></div>
+        <div class="hero-num">
+          <div class="lbl">סה"כ מסי יבוא משוערים</div>
+          <div class="amt" id="taxMain">—</div>
+          <div class="alt" id="taxAlt">בחרו מוצר והזינו סכום</div>
+        </div>
+        <table class="kv" id="kv"></table>
+        <div class="note hidden" id="noteBox"><h3>שימו לב</h3><div id="noteText"></div></div>
+        <details class="acc hidden" id="formulaBox" style="margin-top:11px;box-shadow:none">
+          <summary>פירוט החישוב</summary>
+          <div class="acc-body" style="padding:0 12px 12px">
+            <div class="formula" id="formula"></div>
+          </div>
+        </details>
+      </section>
     </div>
-  </section>
+  </div>
 
-  <!-- פרטי ההזמנה -->
-  <section class="card hidden" id="amountCard">
-    <h2><span class="step">2</span>פרטי ההזמנה</h2>
-    <p class="sub">סכום ההזמנה קובע את מדרגת המס (עד 75$ / 75–500$ / 500–1,000$ / מעל 1,000$).</p>
-
-    <div class="grid cols-2">
-      <div class="field">
-        <label for="amount">סכום ההזמנה</label>
-        <input type="number" id="amount" min="0" step="0.01" placeholder="0.00">
-      </div>
-      <div class="field">
-        <label for="currency">מטבע</label>
-        <select id="currency">
-          <option value="USD">דולר אמריקאי ($)</option>
-          <option value="ILS">שקל (₪)</option>
-          <option value="EUR">אירו (€)</option>
-          <option value="GBP">לירה שטרלינג (£)</option>
-        </select>
-      </div>
-    </div>
-
-    <div class="rates" id="ratesBar">
-      <div class="rates-main">
-        <span class="spinner hidden" id="ratesSpinner"></span>
-        <span id="ratesText"></span>
-      </div>
-    </div>
-
-    <div class="grid cols-3 hidden" id="extraRow" style="margin-top:14px">
-      <div class="field hidden" id="rateSelField">
-        <label for="rateSel" id="rateSelLabel">שער המרה</label>
-        <input type="number" id="rateSel" min="0" step="0.0001">
-        <div class="hint" id="rateSelHint"></div>
-      </div>
-      <div class="field hidden" id="rateUsdField">
-        <label for="rateUsd">שער דולר / ₪</label>
-        <input type="number" id="rateUsd" min="0" step="0.0001">
-        <div class="hint">משמש לקביעת מדרגת המס הדולרית.</div>
-      </div>
-      <div class="field hidden" id="qtyField">
-        <label for="qty" id="qtyLabel">כמות</label>
-        <input type="number" id="qty" min="0" step="0.01" value="1">
-        <div class="hint" id="qtyHint"></div>
-      </div>
-    </div>
-  </section>
-
-  <!-- תוצאה -->
-  <section class="card hidden" id="resultCard">
-    <h2><span class="step">3</span>המס לתשלום</h2>
-    <div class="badge-row" id="badges"></div>
-    <div class="result-hero">
-      <div class="lbl">סה"כ מסי יבוא משוערים</div>
-      <div class="amt" id="taxMain">—</div>
-      <div class="alt" id="taxAlt"></div>
-    </div>
-    <table class="kv" id="kv"></table>
-    <div class="formula" id="formula"></div>
-    <div class="note hidden" id="noteBox"><h3>הערות נוספות</h3><div id="noteText"></div></div>
-  </section>
-
-  <section class="card terms">
-    <h2>איך המס מחושב</h2>
-    <p class="sub">
-      החישוב מבוסס על טבלת המסים של רשות המסים. סך המסים כולל מע"מ (כיום 18%), מכס ומס קנייה.
-      מדרגת המס נקבעת לפי שווי ההזמנה בדולר, לפי השער היציג של בנק ישראל.
-      בחלק מהמוצרים (טבק, משקאות, בשר ועוד) מתווסף סכום קבוע לפי כמות — ק"ג, ליטר, מ"ל, אלף יחידות או פריט.
-      במקרים כאלה מופיע בטבלה "אל"פ" (אבל לא פחות — נלקח הסכום הגבוה מבין החלופות)
-      או "אל"י" (אבל לא יותר — נלקח הסכום הנמוך). פירוט החישוב המלא מוצג בכל תוצאה.
-    </p>
-
-    <h2 style="margin-top:22px">תנאי שימוש והגבלת אחריות</h2>
-    <ul class="terms-list">
-      <li>המידע המוצג במחשבון נכון ליום הפקת הנתונים בלבד. תאריך העדכון האחרון מוצג בראש הדף.</li>
-      <li>המידע מתייחס <strong>ליבוא אישי לשימוש עצמי בלבד</strong>.</li>
-      <li>המחשבון אינו תומך בחישוב מסים עבור יבוא לאוטונומיה עבור טובין המופיעים ברשימות A1 ו-A2.</li>
-      <li>המחשבון אינו תומך בחישוב מסים עבור יבוא רכב.</li>
-      <li>החישוב אינו כולל אגרות נמל הנדרשות לתשלום ביבוא ימי.</li>
-      <li>החישוב אינו כולל תשלומים אפשריים נוספים, כגון עמלות של עמילי מכס.</li>
-      <li>המידע המוצג אינו מחייב את המכס, ואינו יכול להחליף את הנתונים שיידרשו עבור הצהרת היבוא שתוגש.</li>
-      <li>החישוב מיועד לשימוש כללי בלבד ואינו מיועד לחישובים מורכבים או למקרים מיוחדים.
-          בכל מקרה כזה יש לפנות לרשות המסים.</li>
-      <li>המחשבון אינו קשור לרשות המסים ואינו מופעל מטעמה או מטעם בנק ישראל. הנתונים נאספים
-          ממקורות ציבוריים ומוצגים כפי שהם.</li>
-      <li>אין באמור ייעוץ מס, ייעוץ מכס או ייעוץ משפטי, ואין להסתמך עליו לצורך קבלת החלטות.</li>
-      <li>המס בפועל נקבע על ידי המכס בלבד, לפי הסיווג המדויק של הפריט. סיווג שונה עשוי להוביל
-          לשיעור מס שונה מזה המוצג כאן.</li>
-      <li>החישוב מתבצע לפי שווי ההזמנה שהוזן על ידכם. המכס עשוי לקבוע שווי אחר, ולכלול בו גם
-          הוצאות הובלה וביטוח.</li>
-      <li>המכס מחשב לפי שער המכס שלו, שעשוי להיות שונה מהשער היציג של בנק ישראל המשמש כאן.</li>
-      <li>המחשבון אינו בודק מגבלות כמות, איסורי יבוא או דרישות רישוי ותקינה (למשל טבק, אלכוהול,
-          תרופות, ציוד אלחוטי).</li>
-      <li>ייתכנו טעויות, שגיאות חישוב או אי-דיוקים בנתונים ובהצגתם. ט.ל.ח — טעות לעולם חוזרת.</li>
-      <li>השימוש במחשבון הוא באחריות המשתמש בלבד. לא תחול על מפעילי המחשבון או על מי מטעמם
-          אחריות לכל נזק, הפסד או הוצאה, ישירים או עקיפים, שייגרמו כתוצאה מהשימוש בו או
-          מהסתמכות על המידע המוצג בו.</li>
-      <li>עצם השימוש במחשבון מהווה הסכמה לתנאים אלה.</li>
-    </ul>
-  </section>
+  <p class="foot">הנתונים נמשכים מרשות המסים ומבנק ישראל ומתעדכנים אוטומטית מדי יום. להערכה בלבד.</p>
 </div>
 
 <!-- EMBEDDED-DATA:START -->
@@ -617,11 +656,29 @@
     return m ? m[3] + "." + m[2] + "." + m[1] : String(iso || "");
   }
 
+  // "עודכן היום" / "עודכן אתמול" / "עודכן לפני N ימים" / תאריך מלא
+  function updatedLabel(iso){
+    const m = String(iso || "").match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (!m) return { text:"", days:99 };
+    const then = new Date(+m[1], +m[2] - 1, +m[3]);
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const days = Math.round((today - then) / 86400000);
+    if (days <= 0) return { text:"עודכן היום", days:0 };
+    if (days === 1) return { text:"עודכן אתמול", days:1 };
+    if (days < 7) return { text:"עודכן לפני " + days + " ימים", days };
+    return { text:"עודכן ב-" + fmtDate(iso), days };
+  }
+
   function showUpdated(){
     const d = EMBEDDED && EMBEDDED.updated;
     if (!d) return;
-    $("updatedLine").textContent = "המסים ושערי החליפין עודכנו בתאריך " + fmtDate(d);
-    $("updatedLine").classList.remove("hidden");
+    const u = updatedLabel(d);
+    const el = $("updatedLine");
+    $("updatedText").textContent = u.text;
+    el.title = "הנתונים הופקו בתאריך " + fmtDate(d);
+    el.classList.toggle("fresh", u.days <= 1);
+    el.classList.toggle("stale", u.days > 3);
+    el.classList.remove("hidden");
   }
 
   async function boot(){
@@ -983,19 +1040,15 @@
     const selRate = cur === "ILS" ? 1 : readRate("rateSel", RATES[cur] && RATES[cur].rate);
     const usdRate = cur === "USD" ? selRate : readRate("rateUsd", RATES.USD && RATES.USD.rate);
 
-    if (!rec){ $("resultCard").classList.add("hidden"); toggleExtras(false); return; }
+    if (!rec){ emptyResult("בחרו מוצר והזינו סכום"); toggleExtras(false); return; }
 
     // המרות: הכול עובר דרך שקלים, והמדרגה נקבעת לפי השווי בדולר
     const valueILS = amount * selRate;
     const valueUSD = usdRate > 0 ? valueILS / usdRate : 0;
 
     if (!(selRate > 0) || !(usdRate > 0)){
-      $("resultCard").classList.remove("hidden");
       toggleExtras(false);
-      $("badges").innerHTML = "";
-      $("taxMain").textContent = "חסר שער חליפין";
-      $("taxAlt").textContent = "הזינו שער חליפין תקין כדי לחשב.";
-      $("kv").innerHTML = ""; $("formula").textContent = "";
+      emptyResult("הזינו שער חליפין תקין כדי לחשב", "חסר שער חליפין");
       showNote(rec.note);
       return;
     }
@@ -1011,7 +1064,9 @@
     }
     const qty = parsed.needsQty ? toNumber($("qty").value) : 0;
 
-    $("resultCard").classList.remove("hidden");
+    $("resultCard").classList.remove("empty");
+    $("badges").classList.remove("hidden");
+    $("formulaBox").classList.remove("hidden");
 
     // תגיות
     $("badges").innerHTML =
@@ -1020,9 +1075,9 @@
       '<span class="chip">מדרגה: ' + esc(band.label) + "</span>";
 
     if (!parsed.ok){
-      $("taxMain").textContent = "לא ניתן לחשב";
-      $("taxAlt").textContent = parsed.error;
-      $("kv").innerHTML = "";
+      emptyResult(parsed.error, "אין נתון");
+      $("badges").classList.remove("hidden");
+      $("formulaBox").classList.remove("hidden");
       $("formula").textContent = 'נתון המס בטבלה: "' + (parsed.raw || "—") + '"';
       showNote(rec.note);
       return;
@@ -1049,15 +1104,15 @@
 
     const effective = valueILS > 0 ? (tax / valueILS) * 100 : 0;
     const rows = [
-      ["המוצר שנבחר", (rec.l3 || rec.l2 || rec.l1)],
+      ["המוצר", (rec.l3 || rec.l2 || rec.l1)],
       ["שווי ההזמנה", nfILS.format(valueILS) + " (" + nfUSD.format(valueUSD) + ")"],
-      ["מדרגת מחיר", band.label],
-      ["שער המרה", rateLine(cur, selRate, usdRate)],
-      ["סך המסים לפי הטבלה", (parsed.raw || "—") + (isVatOnly(parsed) ? ' — מע"מ בלבד' : "")],
-      ["שיעור מס אפקטיבי", nfNum.format(effective) + "%"]
+      ["מדרגה", band.label],
+      ["שער", rateLine(cur, selRate, usdRate)],
+      ["סך המסים בטבלה", (parsed.raw || "—") + (isVatOnly(parsed) ? ' (מע"מ בלבד)' : "")],
+      ["מס אפקטיבי", nfNum.format(effective) + "%"]
     ];
     if (parsed.needsQty) rows.splice(2, 0, ["כמות", nfNum.format(qty) + " " + parsed.unit.label]);
-    rows.push(["סה\"כ לתשלום (שווי + מס)", nfILS.format(valueILS + tax)]);
+    rows.push(["סה\"כ לתשלום", nfILS.format(valueILS + tax)]);
     $("kv").innerHTML = rows.map(r =>
       "<tr><td>" + esc(r[0]) + "</td><td>" + esc(r[1]) + "</td></tr>").join("");
 
@@ -1104,14 +1159,26 @@
 
   // תיאור השערים ששימשו לחישוב
   function rateLine(cur, selRate, usdRate){
-    const src = isManualRate(cur, selRate, usdRate) ? "שער שהוזן ידנית"
+    const src = isManualRate(cur, selRate, usdRate) ? "ידני"
       : (RATES_SOURCE === "בנק ישראל" || RATES_SOURCE === "מטמון")
-        ? "שער יציג בנק ישראל" + (RATES_DATE ? " " + fmtDate(RATES_DATE) : "")
-        : "שער ברירת מחדל — מומלץ לעדכן";
+        ? "בנק ישראל " + fmtDate(RATES_DATE)
+        : "משוער";
     const parts = [];
     if (cur !== "ILS") parts.push("1" + CURRENCIES[cur].sign + " = " + nfNum4.format(selRate) + " ₪");
     if (cur !== "USD") parts.push("1$ = " + nfNum4.format(usdRate) + " ₪");
-    return (parts.join(" · ") || "—") + " (" + src + ")";
+    return (parts.join(" · ") || "—") + " · " + src;
+  }
+
+  // מצב "אין מה להציג" — הכרטיס נשאר במקומו כדי שהפריסה לא תקפוץ
+  function emptyResult(hint, main){
+    $("resultCard").classList.add("empty");
+    $("taxMain").textContent = main || "—";
+    $("taxAlt").textContent = hint || "";
+    $("kv").innerHTML = "";
+    $("formula").textContent = "";
+    $("badges").classList.add("hidden");
+    $("formulaBox").classList.add("hidden");
+    showNote("");
   }
 
   function showNote(note){
