@@ -98,6 +98,14 @@
     font-size:13px;color:#475467;margin-top:12px;white-space:pre-wrap;word-break:break-word}
   .muted-box{font-size:12.5px;color:var(--muted);margin-top:18px;line-height:1.7}
   .hidden{display:none!important}
+  .rates{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+    margin-top:14px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:#fbfcfe;
+    font-size:13px;color:#475467}
+  .rates.err{background:var(--warn-soft);border-color:#fde4c8;color:#7a3c06}
+  .rates-main{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0}
+  .rates b{color:var(--ink);font-variant-numeric:tabular-nums}
+  .rates .sep{color:#98a2b3}
+  .link-btn{background:none;border:0;color:var(--brand);font-size:13px;padding:2px 4px;text-decoration:underline}
   .fallback textarea{min-height:110px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px}
   a{color:var(--brand)}
   .badge-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
@@ -169,7 +177,7 @@
     <h2><span class="step">2</span>פרטי ההזמנה</h2>
     <p class="sub">סכום ההזמנה קובע את מדרגת המס (עד 75$ / 75–500$ / 500–1,000$ / מעל 1,000$).</p>
 
-    <div class="grid cols-3">
+    <div class="grid cols-2">
       <div class="field">
         <label for="amount">סכום ההזמנה</label>
         <input type="number" id="amount" min="0" step="0.01" placeholder="0.00">
@@ -177,27 +185,37 @@
       <div class="field">
         <label for="currency">מטבע</label>
         <select id="currency">
-          <option value="USD">דולר ($)</option>
+          <option value="USD">דולר אמריקאי ($)</option>
           <option value="ILS">שקל (₪)</option>
           <option value="EUR">אירו (€)</option>
+          <option value="GBP">לירה שטרלינג (£)</option>
         </select>
-      </div>
-      <div class="field">
-        <label for="rate">שער דולר/שקל</label>
-        <input type="number" id="rate" min="0.01" step="0.001" value="3.7">
-        <div class="hint">משמש להמרה בין המדרגות הדולריות לתוצאה בשקלים.</div>
       </div>
     </div>
 
-    <div class="grid cols-2 hidden" id="extraRow" style="margin-top:14px">
+    <div class="rates" id="ratesBar">
+      <div class="rates-main">
+        <span class="spinner" id="ratesSpinner"></span>
+        <span id="ratesText">טוען שערי חליפין מבנק ישראל…</span>
+      </div>
+      <button type="button" class="link-btn" id="ratesRefresh">רענון שערים</button>
+    </div>
+
+    <div class="grid cols-3 hidden" id="extraRow" style="margin-top:14px">
+      <div class="field hidden" id="rateSelField">
+        <label for="rateSel" id="rateSelLabel">שער המרה</label>
+        <input type="number" id="rateSel" min="0" step="0.0001">
+        <div class="hint" id="rateSelHint"></div>
+      </div>
+      <div class="field hidden" id="rateUsdField">
+        <label for="rateUsd">שער דולר / ₪</label>
+        <input type="number" id="rateUsd" min="0" step="0.0001">
+        <div class="hint">משמש לקביעת מדרגת המס הדולרית.</div>
+      </div>
       <div class="field hidden" id="qtyField">
         <label for="qty" id="qtyLabel">כמות</label>
         <input type="number" id="qty" min="0" step="0.01" value="1">
         <div class="hint" id="qtyHint"></div>
-      </div>
-      <div class="field hidden" id="eurField">
-        <label for="eurRate">שער אירו/שקל</label>
-        <input type="number" id="eurRate" min="0.01" step="0.001" value="4.0">
       </div>
     </div>
   </section>
@@ -221,6 +239,8 @@
     המס בפועל נקבע על ידי המכס ועשוי לכלול הוצאות הובלה וביטוח, אגרות ועמלות עמיל מכס, ותלוי בסיווג הפרטי המדויק.
     מדרגות המחיר נקבעות לפי שווי הטובין בדולר. עבור טבק ואלכוהול המס מחושב לפי כמות (ק"ג / אלף סיגריות / ליטר),
     ונלקח הסכום הגבוה מבין החלופות ("אל"פ" = אבל לא פחות).
+    שערי החליפין הם השערים היציגים של בנק ישראל (EDGE / BOI API) ומתעדכנים אוטומטית; ניתן לערוך אותם ידנית.
+    שימו לב שהמכס עצמו מחשב לפי שער המכס שלו, שעשוי להיות שונה במעט מהשער היציג.
   </p>
 </div>
 
@@ -231,6 +251,17 @@
   const API_URL = "https://shaarolami-query.customs.mof.gov.il/CustomspilotWeb/SystemTables/api/GetTableData?tableName=ConcentratedTaxesView&includeMetadata=true";
   const CACHE_KEY = "pit_tax_data_v1";
   const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 שעות
+  const RATES_KEY = "pit_rates_v1";
+  const RATES_TTL = 6 * 60 * 60 * 1000; // 6 שעות
+
+  const CURRENCIES = {
+    ILS: {code:"ILS", sign:"₪", name:"שקל"},
+    USD: {code:"USD", sign:"$", name:"דולר"},
+    EUR: {code:"EUR", sign:"€", name:"אירו"},
+    GBP: {code:"GBP", sign:"£", name:"לירה שטרלינג"}
+  };
+  // שערי ברירת מחדל — משמשים רק אם בנק ישראל אינו זמין
+  const DEFAULT_RATES = { USD:{rate:3.7}, EUR:{rate:4.0}, GBP:{rate:4.7} };
 
   const $ = id => document.getElementById(id);
   document.getElementById("apiLink").href = API_URL;
@@ -257,6 +288,7 @@
   const nfILS = new Intl.NumberFormat("he-IL", {style:"currency", currency:"ILS", maximumFractionDigits:2});
   const nfUSD = new Intl.NumberFormat("he-IL", {style:"currency", currency:"USD", maximumFractionDigits:2});
   const nfNum = new Intl.NumberFormat("he-IL", {maximumFractionDigits:2});
+  const nfNum4 = new Intl.NumberFormat("he-IL", {minimumFractionDigits:2, maximumFractionDigits:4});
   const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 
   /* ======================= נירמול מבנה תשובת ה-API ======================= */
@@ -547,6 +579,203 @@
     fr.readAsText(f);
   };
 
+  /* ==================== שערי חליפין יציגים — בנק ישראל ==================== */
+  // מקור: EDGE של בנק ישראל (SDMX). מנסה כמה נקודות קצה, ואם כולן נכשלות
+  // נשארים שערי ברירת המחדל וניתן להזין שער ידנית.
+
+  let RATES = Object.assign({}, DEFAULT_RATES);
+  let RATES_SOURCE = "ברירת מחדל";
+  let RATES_DATE = "";
+
+  const EDGE = "https://edge.boi.gov.il/FusionEdgeServer/sdmx/v2/data/dataflow/BOI.STATISTICS/EXR/1.0/";
+  const RATE_ENDPOINTS = [
+    { url: EDGE + "RER_USD_ILS+RER_EUR_ILS+RER_GBP_ILS?format=sdmx-json&lastNObservations=1", parse: parseSdmxRates },
+    { url: EDGE + "RER_USD_ILS?format=sdmx-json&lastNObservations=1", parse: parseSdmxRates },
+    { url: EDGE + "RER_EUR_ILS?format=sdmx-json&lastNObservations=1", parse: parseSdmxRates },
+    { url: EDGE + "RER_GBP_ILS?format=sdmx-json&lastNObservations=1", parse: parseSdmxRates },
+    { url: EDGE + "all?format=sdmx-json&lastNObservations=1", parse: parseSdmxRates },
+    { url: "https://boi.org.il/PublicApi/GetExchangeRates?asJson=true", parse: parseLegacyRates }
+  ];
+
+  function currencyFromCode(id){
+    const c = String(id || "").toUpperCase().replace(/ILS|NIS/g, "");
+    if (/USD/.test(c)) return "USD";
+    if (/EUR/.test(c)) return "EUR";
+    if (/GBP/.test(c)) return "GBP";
+    return null;
+  }
+
+  // פורמט SDMX-JSON (גם 1.0 וגם 2.0)
+  function parseSdmxRates(json){
+    const out = {};
+    const msg = (json && json.data && (json.data.dataSets || json.data.structure || json.data.structures)) ? json.data : json;
+    if (!msg || typeof msg !== "object") return out;
+    const structure = msg.structure || (Array.isArray(msg.structures) && msg.structures[0]) || json.structure;
+    const dataSets = msg.dataSets || msg.dataSet || [];
+    if (!structure || !dataSets.length) return out;
+
+    const dims = (structure.dimensions && structure.dimensions.series) || [];
+    const obsDims = (structure.dimensions && structure.dimensions.observation) || [];
+    const timeVals = (obsDims[0] && obsDims[0].values) || [];
+
+    for (const ds of [].concat(dataSets)){
+      const series = ds && ds.series;
+      if (!series) continue;
+      for (const [key, s] of Object.entries(series)){
+        // מזהה הסדרה מורכב מערכי הממדים לפי המיקום במפתח ("0:1:0")
+        const parts = key.split(":").map(Number);
+        let ids = [];
+        parts.forEach((v, i) => {
+          const vals = dims[i] && dims[i].values;
+          if (vals && vals[v] && vals[v].id) ids.push(String(vals[v].id));
+        });
+        const joined = ids.join("_");
+        const cur = currencyFromCode(joined);
+        if (!cur) continue;
+        const exact = ids.some(id => new RegExp("^RER_" + cur + "_ILS$", "i").test(id));
+        if (out[cur] && out[cur].exact && !exact) continue;
+
+        const obs = s.observations || {};
+        const oKeys = Object.keys(obs).sort((a,b) => Number(a) - Number(b));
+        if (!oKeys.length) continue;
+        const lastKey = oKeys[oKeys.length - 1];
+        const cell = obs[lastKey];
+        const val = Number(Array.isArray(cell) ? cell[0] : cell);
+        if (!isFinite(val) || val <= 0) continue;
+        const t = timeVals[Number(lastKey)];
+        out[cur] = { rate: val, date: t ? String(t.id || t.name || "") : "", exact };
+      }
+    }
+    return out;
+  }
+
+  // הפורמט הישן של boi.org.il ({"ExchangeRates":[{"Key":"USD","CurrentExchangeRate":3.7,"Unit":1}]})
+  function parseLegacyRates(json){
+    const out = {};
+    const seen = new Set(); const queue = [json];
+    while (queue.length){
+      const cur = queue.shift();
+      if (!cur || typeof cur !== "object" || seen.has(cur)) continue;
+      seen.add(cur);
+      if (!Array.isArray(cur)){
+        let code = null, rate = null, rateScore = 0, unit = 1, date = "";
+        for (const [k, v] of Object.entries(cur)){
+          const nk = keyNorm(k);
+          if (!code && (nk === "key" || nk === "currencycode" || nk === "currency") && typeof v === "string") code = currencyFromCode(v);
+          // דירוג: "CurrentExchangeRate" עדיף על שדות אחרים שמכילים "rate"
+          const score = /exchangerate/.test(nk) ? 3
+            : (nk === "rate" || nk === "currentrate" || nk === "value") ? 2
+            : (/rate/.test(nk) && !/change|percent/.test(nk)) ? 1 : 0;
+          if (score > rateScore && Number(v) > 0 && isFinite(Number(v))){ rate = Number(v); rateScore = score; }
+          if (nk === "unit" && Number(v) > 0) unit = Number(v);
+          if (/lastupdate|date/.test(nk) && typeof v === "string") date = v.slice(0, 10);
+        }
+        if (code && rate > 0) out[code] = { rate: rate / unit, date, exact:true };
+      }
+      const vals = Array.isArray(cur) ? cur : Object.values(cur);
+      for (const v of vals) queue.push(v);
+    }
+    return out;
+  }
+
+  async function tryFetchJson(url){
+    for (const proxy of PROXIES){
+      try{
+        const res = await fetch(proxy(url), {headers:{"Accept":"application/json"}});
+        if (!res.ok) continue;
+        return JSON.parse(await res.text());
+      }catch(e){ /* ננסה את המתווך הבא */ }
+    }
+    return null;
+  }
+
+  async function fetchRates(){
+    const found = {};
+    for (const ep of RATE_ENDPOINTS){
+      if (found.USD && found.EUR && found.GBP) break;
+      const json = await tryFetchJson(ep.url);
+      if (!json) continue;
+      const parsed = ep.parse(json);
+      for (const [k, v] of Object.entries(parsed)) if (!found[k]) found[k] = v;
+    }
+    return found;
+  }
+
+  function saveRates(rates, date){
+    try{ localStorage.setItem(RATES_KEY, JSON.stringify({ts:Date.now(), rates, date})); }catch(e){}
+  }
+  function loadRatesCache(){
+    try{
+      const o = JSON.parse(localStorage.getItem(RATES_KEY) || "null");
+      if (o && o.rates && o.rates.USD && (Date.now() - o.ts) < RATES_TTL) return o;
+    }catch(e){}
+    return null;
+  }
+
+  function renderRates(state){
+    const bar = $("ratesBar");
+    const txt = $("ratesText");
+    $("ratesSpinner").classList.toggle("hidden", state !== "loading");
+    bar.classList.toggle("err", state === "error");
+    if (state === "loading"){ txt.textContent = "טוען שערי חליפין מבנק ישראל…"; return; }
+
+    const parts = ["USD","EUR","GBP"]
+      .filter(c => RATES[c] && RATES[c].rate)
+      .map(c => "1" + CURRENCIES[c].sign + " = <b>" + nfNum4.format(RATES[c].rate) + " ₪</b>");
+    const head = state === "error"
+      ? "לא הצלחנו למשוך שערים מבנק ישראל — נעשה שימוש בשערי ברירת מחדל (ניתן לעדכן ידנית): "
+      : "שער יציג, בנק ישראל" + (RATES_DATE ? " (" + RATES_DATE + ")" : "") +
+        (RATES_SOURCE === "מטמון" ? " · מהמטמון" : "") + ": ";
+    txt.innerHTML = esc(head) + parts.join(' <span class="sep">·</span> ');
+  }
+
+  function ratesDate(found){
+    for (const c of ["USD","EUR","GBP"]) if (found[c] && found[c].date) return found[c].date;
+    return "";
+  }
+
+  async function loadRates(force){
+    if (!force){
+      const cached = loadRatesCache();
+      if (cached){
+        RATES = Object.assign({}, DEFAULT_RATES, cached.rates);
+        RATES_DATE = cached.date || "";
+        RATES_SOURCE = "מטמון";
+        applyRates(); renderRates("ok"); calc();
+        return;
+      }
+    }
+    renderRates("loading");
+    let found = {};
+    try{ found = await fetchRates(); }catch(e){ found = {}; }
+    if (found && found.USD){
+      RATES = Object.assign({}, DEFAULT_RATES, found);
+      RATES_DATE = ratesDate(found);
+      RATES_SOURCE = "בנק ישראל";
+      saveRates(found, RATES_DATE);
+      applyRates(); renderRates("ok");
+    }else{
+      RATES = Object.assign({}, DEFAULT_RATES);
+      RATES_DATE = ""; RATES_SOURCE = "ברירת מחדל";
+      applyRates(); renderRates("error");
+    }
+    calc();
+  }
+
+  // ממלא את שדות השער לפי המטבע הנבחר (המשתמש יכול לדרוס ידנית)
+  function applyRates(){
+    const cur = $("currency").value;
+    const sel = RATES[cur] && RATES[cur].rate;
+    $("rateSel").value = cur === "ILS" ? "" : (sel ? round4(sel) : "");
+    $("rateUsd").value = RATES.USD && RATES.USD.rate ? round4(RATES.USD.rate) : "";
+    $("rateSelLabel").textContent = "שער " + (CURRENCIES[cur] ? CURRENCIES[cur].name : cur) + " / ₪";
+    $("rateSelHint").textContent = RATES_SOURCE === "ברירת מחדל" ? "שער משוער — מומלץ לעדכן ידנית." : "שער יציג של בנק ישראל, ניתן לעריכה.";
+  }
+
+  const round4 = n => Math.round(n * 10000) / 10000;
+
+  $("ratesRefresh").onclick = () => { try{ localStorage.removeItem(RATES_KEY); }catch(e){} loadRates(true); };
+
   /* ============================== ממשק בחירה ============================== */
 
   function fillSelect(sel, items){
@@ -635,39 +864,55 @@
     return {key:"t4", label:"מעל 1,000$"};
   }
 
-  ["amount","currency","rate","qty","eurRate"].forEach(id => {
+  ["amount","qty","rateSel","rateUsd"].forEach(id => {
     const el = $(id);
     el.addEventListener("input", calc);
     el.addEventListener("change", calc);
   });
+  $("currency").addEventListener("change", () => { applyRates(); calc(); });
 
-  // מציג/מסתיר את שורת השדות הנוספים (כמות / שער אירו)
-  function toggleExtras(needsQty, needsEur){
+  // מציג/מסתיר את שורת השדות הנוספים (שערי המרה / כמות)
+  function toggleExtras(needsQty){
+    const cur = $("currency").value;
+    const showSel = cur !== "ILS";              // שער המטבע הנבחר מול השקל
+    const showUsd = cur !== "USD";              // שער הדולר — נדרש לקביעת המדרגה
+    $("rateSelField").classList.toggle("hidden", !showSel);
+    $("rateUsdField").classList.toggle("hidden", !showUsd);
     $("qtyField").classList.toggle("hidden", !needsQty);
-    $("eurField").classList.toggle("hidden", !needsEur);
-    $("extraRow").classList.toggle("hidden", !needsQty && !needsEur);
+    $("extraRow").classList.toggle("hidden", !showSel && !showUsd && !needsQty);
   }
 
   function calc(){
     const rec = currentRecord();
     const amount = toNumber($("amount").value);
     const cur = $("currency").value;
-    const usdRate = toNumber($("rate").value) || 3.7;
-    const eurRate = toNumber($("eurRate").value) || 4;
 
-    if (!rec){ $("resultCard").classList.add("hidden"); toggleExtras(false, cur === "EUR"); return; }
+    // שער המטבע הנבחר מול השקל, ושער הדולר לצורך קביעת המדרגה
+    const selRate = cur === "ILS" ? 1 : readRate("rateSel", RATES[cur] && RATES[cur].rate);
+    const usdRate = cur === "USD" ? selRate : readRate("rateUsd", RATES.USD && RATES.USD.rate);
 
-    // המרות
-    let valueILS, valueUSD;
-    if (cur === "USD"){ valueUSD = amount; valueILS = amount * usdRate; }
-    else if (cur === "ILS"){ valueILS = amount; valueUSD = usdRate ? amount / usdRate : 0; }
-    else { valueILS = amount * eurRate; valueUSD = usdRate ? valueILS / usdRate : 0; }
+    if (!rec){ $("resultCard").classList.add("hidden"); toggleExtras(false); return; }
+
+    // המרות: הכול עובר דרך שקלים, והמדרגה נקבעת לפי השווי בדולר
+    const valueILS = amount * selRate;
+    const valueUSD = usdRate > 0 ? valueILS / usdRate : 0;
+
+    if (!(selRate > 0) || !(usdRate > 0)){
+      $("resultCard").classList.remove("hidden");
+      toggleExtras(false);
+      $("badges").innerHTML = "";
+      $("taxMain").textContent = "חסר שער חליפין";
+      $("taxAlt").textContent = "הזינו שער חליפין תקין כדי לחשב.";
+      $("kv").innerHTML = ""; $("formula").textContent = "";
+      showNote(rec.note);
+      return;
+    }
 
     const band = bandOf(valueUSD);
     const parsed = parseTax(rec[band.key]);
 
     // שדה כמות מוצג רק כשצריך (טבק/אלכוהול/יחידות)
-    toggleExtras(parsed.needsQty, cur === "EUR");
+    toggleExtras(parsed.needsQty);
     if (parsed.needsQty){
       $("qtyLabel").textContent = "כמות (" + parsed.unit.label + ")";
       $("qtyHint").textContent = parsed.unit.id === "cig"
@@ -712,6 +957,7 @@
       ["המוצר שנבחר", (rec.l3 || rec.l2 || rec.l1)],
       ["שווי ההזמנה", nfILS.format(valueILS) + " (" + nfUSD.format(valueUSD) + ")"],
       ["מדרגת מחיר", band.label],
+      ["שער המרה", rateLine(cur, selRate, usdRate)],
       ["סך המסים לפי הטבלה", parsed.raw || "—"],
       ["שיעור מס אפקטיבי", nfNum.format(effective) + "%"]
     ];
@@ -733,13 +979,43 @@
     showNote(rec.note);
   }
 
+  // קריאת שער משדה: ריק => השער מבנק ישראל; ערך לא חיובי => שגיאה (NaN)
+  function readRate(id, fallback){
+    const raw = String($(id).value).trim();
+    if (raw === "") return fallback > 0 ? fallback : NaN;
+    const n = toNumber(raw);
+    return n > 0 ? n : NaN;
+  }
+
+  // האם המשתמש דרס את השער שהתקבל מבנק ישראל?
+  function isManualRate(cur, selRate, usdRate){
+    const differs = (used, official) => official > 0 && Math.abs(used - round4(official)) > 1e-6;
+    if (cur !== "ILS" && differs(selRate, RATES[cur] && RATES[cur].rate)) return true;
+    if (cur !== "USD" && differs(usdRate, RATES.USD && RATES.USD.rate)) return true;
+    return false;
+  }
+
+  // תיאור השערים ששימשו לחישוב
+  function rateLine(cur, selRate, usdRate){
+    const src = isManualRate(cur, selRate, usdRate) ? "שער שהוזן ידנית"
+      : (RATES_SOURCE === "בנק ישראל" || RATES_SOURCE === "מטמון")
+        ? "שער יציג בנק ישראל" + (RATES_DATE ? " " + RATES_DATE : "")
+        : "שער ברירת מחדל — מומלץ לעדכן";
+    const parts = [];
+    if (cur !== "ILS") parts.push("1" + CURRENCIES[cur].sign + " = " + nfNum4.format(selRate) + " ₪");
+    if (cur !== "USD") parts.push("1$ = " + nfNum4.format(usdRate) + " ₪");
+    return (parts.join(" · ") || "—") + " (" + src + ")";
+  }
+
   function showNote(note){
     const n = clean(note);
     $("noteBox").classList.toggle("hidden", !n);
     $("noteText").textContent = n;
   }
 
+  applyRates();
   boot(false);
+  loadRates(false);
 })();
 </script>
 </body>
