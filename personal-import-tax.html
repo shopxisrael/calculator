@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>מחשבון מסי יבוא אישי</title>
+<style>
+  :root{
+    --bg:#f4f6fb;
+    --card:#ffffff;
+    --ink:#101828;
+    --muted:#667085;
+    --line:#e4e7ec;
+    --brand:#1f5fd6;
+    --brand-dark:#16408f;
+    --brand-soft:#eaf1ff;
+    --good:#067647;
+    --good-soft:#e7f7ef;
+    --warn:#b54708;
+    --warn-soft:#fff4e5;
+    --bad:#b42318;
+    --bad-soft:#fee4e2;
+    --radius:16px;
+    --shadow:0 1px 2px rgba(16,24,40,.05), 0 12px 32px -12px rgba(16,24,40,.18);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:"Segoe UI",Rubik,Arial,"Noto Sans Hebrew",sans-serif;
+    background:var(--bg); color:var(--ink); line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:960px;margin:0 auto;padding:24px 16px 64px}
+  header.hero{
+    background:linear-gradient(135deg,var(--brand-dark),var(--brand));
+    color:#fff;border-radius:var(--radius);padding:28px 24px;box-shadow:var(--shadow);
+  }
+  header.hero h1{margin:0 0 6px;font-size:26px;letter-spacing:-.02em}
+  header.hero p{margin:0;opacity:.9;font-size:15px}
+  .card{
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:20px;margin-top:18px;box-shadow:var(--shadow);
+  }
+  .card h2{margin:0 0 4px;font-size:17px}
+  .card .sub{margin:0 0 16px;color:var(--muted);font-size:13.5px}
+  .step{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;
+    border-radius:50%;background:var(--brand-soft);color:var(--brand-dark);font-size:13px;font-weight:700;
+    margin-left:8px;vertical-align:middle}
+  label{display:block;font-size:13.5px;font-weight:600;margin:0 0 6px;color:#344054}
+  select,input[type=text],input[type=number],textarea{
+    width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:#fff;
+    font:inherit;color:inherit;transition:border-color .15s, box-shadow .15s;
+  }
+  select:focus,input:focus,textarea:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 3px rgba(31,95,214,.15)}
+  select:disabled,input:disabled{background:#f9fafb;color:#98a2b3;cursor:not-allowed}
+  .grid{display:grid;gap:14px}
+  @media(min-width:700px){ .grid.cols-3{grid-template-columns:repeat(3,1fr)} .grid.cols-2{grid-template-columns:repeat(2,1fr)} }
+  .field{min-width:0}
+  .hint{font-size:12.5px;color:var(--muted);margin-top:6px}
+  button{
+    font:inherit;font-weight:600;border-radius:10px;border:1px solid transparent;cursor:pointer;
+    padding:10px 16px;transition:filter .15s, background .15s;
+  }
+  button:hover{filter:brightness(.96)}
+  .btn-primary{background:var(--brand);color:#fff}
+  .btn-ghost{background:#fff;border-color:var(--line);color:#344054}
+  .btn-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+  .status{display:flex;align-items:center;gap:10px;font-size:13.5px;padding:10px 12px;border-radius:10px;
+    background:var(--brand-soft);color:var(--brand-dark);border:1px solid #d3e2ff}
+  .status.err{background:var(--bad-soft);color:var(--bad);border-color:#fdd9d5}
+  .status.ok{background:var(--good-soft);color:var(--good);border-color:#c9eeda}
+  .spinner{width:15px;height:15px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;
+    animation:spin .8s linear infinite;flex:0 0 auto}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .search-wrap{position:relative}
+  .results{position:absolute;z-index:30;inset-inline:0;top:calc(100% + 6px);background:#fff;border:1px solid var(--line);
+    border-radius:12px;box-shadow:var(--shadow);max-height:300px;overflow:auto;display:none}
+  .results.open{display:block}
+  .results button{display:block;width:100%;text-align:start;background:none;border:0;border-bottom:1px solid #f2f4f7;
+    padding:9px 12px;font-weight:500;border-radius:0}
+  .results button:hover{background:var(--brand-soft)}
+  .results .r1{font-size:14px}
+  .results .r2{font-size:12px;color:var(--muted)}
+  .result-hero{background:linear-gradient(135deg,#0b7a4b,#12a06a);color:#fff;border-radius:14px;padding:18px 20px}
+  .result-hero .lbl{font-size:13.5px;opacity:.92}
+  .result-hero .amt{font-size:34px;font-weight:800;letter-spacing:-.02em;line-height:1.2;margin-top:2px}
+  .result-hero .alt{font-size:13.5px;opacity:.92;margin-top:2px}
+  table.kv{width:100%;border-collapse:collapse;margin-top:14px;font-size:14px}
+  table.kv td{padding:9px 4px;border-bottom:1px solid var(--line);vertical-align:top}
+  table.kv td:first-child{color:var(--muted);width:44%}
+  table.kv td:last-child{font-weight:600}
+  .chip{display:inline-block;background:var(--brand-soft);color:var(--brand-dark);border-radius:999px;
+    padding:2px 10px;font-size:12.5px;font-weight:600}
+  .note{margin-top:14px;background:var(--warn-soft);border:1px solid #fde4c8;color:#7a3c06;
+    border-radius:12px;padding:12px 14px;font-size:13.5px;white-space:pre-wrap}
+  .note h3{margin:0 0 4px;font-size:14px}
+  .formula{background:#f9fafb;border:1px dashed var(--line);border-radius:10px;padding:10px 12px;
+    font-size:13px;color:#475467;margin-top:12px;white-space:pre-wrap;word-break:break-word}
+  .muted-box{font-size:12.5px;color:var(--muted);margin-top:18px;line-height:1.7}
+  .hidden{display:none!important}
+  .fallback textarea{min-height:110px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px}
+  a{color:var(--brand)}
+  .badge-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <h1>מחשבון מסי יבוא אישי</h1>
+    <p>מע"מ + מכס + מס קנייה — לפי טבלת המסים המרוכזת של רשות המסים (שער עולמי)</p>
+  </header>
+
+  <!-- טעינת נתונים -->
+  <section class="card" id="loaderCard">
+    <div id="status" class="status"><span class="spinner"></span><span id="statusText">טוען את טבלת המסים…</span></div>
+    <div id="fallback" class="fallback hidden">
+      <p class="hint" style="margin-top:14px">
+        לא ניתן היה למשוך את הנתונים אוטומטית (חסימת CORS או רשת). אפשר לטעון ידנית:
+        פתחו את <a id="apiLink" href="#" target="_blank" rel="noopener">כתובת ה-API</a>,
+        שמרו את הקובץ והעלו אותו כאן — או הדביקו את תוכן ה-JSON.
+      </p>
+      <div class="grid cols-2" style="margin-top:10px">
+        <div class="field">
+          <label for="fileInput">העלאת קובץ JSON</label>
+          <input type="file" id="fileInput" accept=".json,application/json">
+        </div>
+        <div class="field">
+          <label for="pasteInput">הדבקת JSON</label>
+          <textarea id="pasteInput" placeholder='{"data":[…]}'></textarea>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn-primary" id="loadPasteBtn">טען מהטקסט</button>
+        <button class="btn-ghost" id="retryBtn">נסה שוב מהאינטרנט</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- בחירת מוצר -->
+  <section class="card hidden" id="pickCard">
+    <h2><span class="step">1</span>בחירת המוצר</h2>
+    <p class="sub">בחרו קטגוריה ← קטגוריה משנית ← מוצר, או חפשו ישירות.</p>
+
+    <div class="field search-wrap" style="margin-bottom:14px">
+      <label for="search">חיפוש מהיר</label>
+      <input type="text" id="search" placeholder="לדוגמה: נעליים, טלפון, יין…" autocomplete="off">
+      <div class="results" id="results"></div>
+    </div>
+
+    <div class="grid cols-3">
+      <div class="field">
+        <label for="l1">קטגוריה ראשית</label>
+        <select id="l1"><option value="">— בחרו —</option></select>
+      </div>
+      <div class="field">
+        <label for="l2">קטגוריה משנית</label>
+        <select id="l2" disabled><option value="">— בחרו —</option></select>
+      </div>
+      <div class="field">
+        <label for="l3">מוצר</label>
+        <select id="l3" disabled><option value="">— בחרו —</option></select>
+      </div>
+    </div>
+  </section>
+
+  <!-- פרטי ההזמנה -->
+  <section class="card hidden" id="amountCard">
+    <h2><span class="step">2</span>פרטי ההזמנה</h2>
+    <p class="sub">סכום ההזמנה קובע את מדרגת המס (עד 75$ / 75–500$ / 500–1,000$ / מעל 1,000$).</p>
+
+    <div class="grid cols-3">
+      <div class="field">
+        <label for="amount">סכום ההזמנה</label>
+        <input type="number" id="amount" min="0" step="0.01" placeholder="0.00">
+      </div>
+      <div class="field">
+        <label for="currency">מטבע</label>
+        <select id="currency">
+          <option value="USD">דולר ($)</option>
+          <option value="ILS">שקל (₪)</option>
+          <option value="EUR">אירו (€)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="rate">שער דולר/שקל</label>
+        <input type="number" id="rate" min="0.01" step="0.001" value="3.7">
+        <div class="hint">משמש להמרה בין המדרגות הדולריות לתוצאה בשקלים.</div>
+      </div>
+    </div>
+
+    <div class="grid cols-2 hidden" id="extraRow" style="margin-top:14px">
+      <div class="field hidden" id="qtyField">
+        <label for="qty" id="qtyLabel">כמות</label>
+        <input type="number" id="qty" min="0" step="0.01" value="1">
+        <div class="hint" id="qtyHint"></div>
+      </div>
+      <div class="field hidden" id="eurField">
+        <label for="eurRate">שער אירו/שקל</label>
+        <input type="number" id="eurRate" min="0.01" step="0.001" value="4.0">
+      </div>
+    </div>
+  </section>
+
+  <!-- תוצאה -->
+  <section class="card hidden" id="resultCard">
+    <h2><span class="step">3</span>המס לתשלום</h2>
+    <div class="badge-row" id="badges"></div>
+    <div class="result-hero">
+      <div class="lbl">סה"כ מסי יבוא משוערים</div>
+      <div class="amt" id="taxMain">—</div>
+      <div class="alt" id="taxAlt"></div>
+    </div>
+    <table class="kv" id="kv"></table>
+    <div class="formula" id="formula"></div>
+    <div class="note hidden" id="noteBox"><h3>הערות נוספות</h3><div id="noteText"></div></div>
+  </section>
+
+  <p class="muted-box">
+    החישוב מבוסס על טבלת המסים המרוכזת (ConcentratedTaxesView) של רשות המסים ומיועד להערכה בלבד.
+    המס בפועל נקבע על ידי המכס ועשוי לכלול הוצאות הובלה וביטוח, אגרות ועמלות עמיל מכס, ותלוי בסיווג הפרטי המדויק.
+    מדרגות המחיר נקבעות לפי שווי הטובין בדולר. עבור טבק ואלכוהול המס מחושב לפי כמות (ק"ג / אלף סיגריות / ליטר),
+    ונלקח הסכום הגבוה מבין החלופות ("אל"פ" = אבל לא פחות).
+  </p>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  const API_URL = "https://shaarolami-query.customs.mof.gov.il/CustomspilotWeb/SystemTables/api/GetTableData?tableName=ConcentratedTaxesView&includeMetadata=true";
+  const CACHE_KEY = "pit_tax_data_v1";
+  const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 שעות
+
+  const $ = id => document.getElementById(id);
+  document.getElementById("apiLink").href = API_URL;
+
+  /* ============================== עזרי טקסט ============================== */
+
+  // ניקוי: תווי כיווניות, גרשיים לא סטנדרטיים, רווחים כפולים/מיותרים
+  function clean(v){
+    if (v === null || v === undefined) return "";
+    return String(v)
+      .replace(/[​-‏‪-‮⁦-⁩﻿]/g, "")
+      .replace(/ /g, " ")
+      .replace(/[״“”]/g, '"')
+      .replace(/[׳‘’]/g, "'")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  function toNumber(s){
+    const n = parseFloat(String(s).replace(/,/g, ""));
+    return isFinite(n) ? n : 0;
+  }
+
+  const nfILS = new Intl.NumberFormat("he-IL", {style:"currency", currency:"ILS", maximumFractionDigits:2});
+  const nfUSD = new Intl.NumberFormat("he-IL", {style:"currency", currency:"USD", maximumFractionDigits:2});
+  const nfNum = new Intl.NumberFormat("he-IL", {maximumFractionDigits:2});
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+  /* ======================= נירמול מבנה תשובת ה-API ======================= */
+
+  const FIELDS = {
+    productlevel1:"l1", productlevel2:"l2", productlevel3:"l3",
+    category1taxes1:"t1", category1taxes2:"t2", category1taxes3:"t3", category1taxes4:"t4",
+    specialremarkforpassengerterminal:"note"
+  };
+  const keyNorm = k => String(k).toLowerCase().replace(/[^a-z0-9]/g, "");
+
+  function scoreRow(row){
+    if (!row || typeof row !== "object" || Array.isArray(row)) return -1;
+    let s = 0;
+    for (const k of Object.keys(row)) if (FIELDS[keyNorm(k)]) s++;
+    return s;
+  }
+
+  // מאתר בתוך ה-JSON את מערך הרשומות, לא משנה איך הוא עטוף (data / Rows / Table / …)
+  function findRows(json){
+    const seen = new Set(); const queue = [json]; let best = null;
+    while (queue.length){
+      const cur = queue.shift();
+      if (!cur || typeof cur !== "object" || seen.has(cur)) continue;
+      seen.add(cur);
+      if (Array.isArray(cur)){
+        if (cur.length && cur.every(x => x && typeof x === "object")){
+          const score = scoreRow(cur[0]);
+          if (!best || score > best.score || (score === best.score && cur.length > best.rows.length)){
+            best = {score, rows:cur};
+          }
+        }
+        for (const x of cur.slice(0, 5)) queue.push(x);
+      } else {
+        for (const v of Object.values(cur)) queue.push(v);
+      }
+    }
+    return best ? best.rows : [];
+  }
+
+  // אם הרשומות מגיעות כמערכים (עמודות + שורות) — מאתר את שמות העמודות
+  function findColumns(json, len){
+    const seen = new Set(); const queue = [json];
+    while (queue.length){
+      const cur = queue.shift();
+      if (!cur || typeof cur !== "object" || seen.has(cur)) continue;
+      seen.add(cur);
+      if (Array.isArray(cur) && cur.length === len){
+        if (cur.every(x => typeof x === "string")) return cur;
+        if (cur.every(x => x && typeof x === "object")){
+          const names = cur.map(x => {
+            for (const k of ["name","Name","columnName","ColumnName","field","Field","fieldName","key","id","Id"]) {
+              if (typeof x[k] === "string") return x[k];
+            }
+            return "";
+          });
+          if (names.every(Boolean)) return names;
+        }
+      }
+      const vals = Array.isArray(cur) ? cur.slice(0, 5) : Object.values(cur);
+      for (const v of vals) queue.push(v);
+    }
+    return null;
+  }
+
+  // מאתר מערך של שורות-מערכים (פורמט עמודות + שורות)
+  function findArrayOfArrays(json){
+    const seen = new Set(); const queue = [json]; let best = null;
+    while (queue.length){
+      const cur = queue.shift();
+      if (!cur || typeof cur !== "object" || seen.has(cur)) continue;
+      seen.add(cur);
+      if (Array.isArray(cur)){
+        if (cur.length && cur.every(x => Array.isArray(x))){
+          if (!best || cur.length > best.length) best = cur;
+        }
+        for (const x of cur.slice(0, 5)) queue.push(x);
+      } else {
+        for (const v of Object.values(cur)) queue.push(v);
+      }
+    }
+    return best;
+  }
+
+  function extractRecords(json){
+    let recs = mapRecords(findRows(json));
+    if (recs.length) return recs;
+    // ניסיון שני: פורמט עמודות + שורות
+    const arr = findArrayOfArrays(json);
+    if (arr){
+      const cols = findColumns(json, arr[0].length);
+      if (cols) recs = mapRecords(arr.map(r => { const o = {}; cols.forEach((c,i) => o[c] = r[i]); return o; }));
+    }
+    return recs;
+  }
+
+  function mapRecords(rows){
+    if (!rows || !rows.length || Array.isArray(rows[0])) return [];
+    const out = [];
+    for (const r of rows){
+      const rec = {};
+      for (const [k, v] of Object.entries(r)){
+        const c = FIELDS[keyNorm(k)];
+        if (c) rec[c] = clean(v);
+      }
+      if (rec.l1 && (rec.t1 || rec.t2 || rec.t3 || rec.t4)) out.push(rec);
+    }
+    return out;
+  }
+
+  /* ==================== פענוח מחרוזת המס ("סך מסים") ==================== */
+  // מחזיר: {ok, raw, exempt, unit, alts:[{percent, fixed}], needsQty}
+  // unit = {id, label, per}  למשל  {id:"kg", label:'ק"ג', per:'לק"ג'}
+
+  const UNIT_PATTERNS = [
+    { id:"cig",   re:/(?:ל\s*-?\s*)?(?:אלף|1[\s,]?000)\s*סיגריות|לאלף\s*סיגריות/ , label:"אלף סיגריות", per:"לאלף סיגריות" },
+    { id:"kg",    re:/ל?ק"ג|לקילוגרם|לקילו|קילוגרם/ , label:'ק"ג', per:'לק"ג' },
+    { id:"liter", re:/ל?ליטר/ , label:"ליטר", per:"לליטר" },
+    { id:"unit",  re:/ליחיד(?:ה|ות)|לפריט|ליח'/ , label:"יחידה", per:"ליחידה" }
+  ];
+
+  function detectUnit(text){
+    for (const u of UNIT_PATTERNS) if (u.re.test(text)) return u;
+    return null;
+  }
+
+  function parseSegment(seg){
+    const unit = detectUnit(seg);
+    // אחוזים
+    const percents = [...seg.matchAll(/(\d[\d,]*(?:\.\d+)?)\s*%/g)].map(m => toNumber(m[1]));
+    let rest = seg.replace(/(\d[\d,]*(?:\.\d+)?)\s*%/g, " ");
+    // הסרת ביטויי היחידה כדי שלא ייקלטו כסכום (למשל "1,000 סיגריות")
+    for (const u of UNIT_PATTERNS) rest = rest.replace(new RegExp(u.re.source, "g"), " ");
+    // סכום קבוע — מספר צמוד לסימון מטבע
+    let fixed = [...rest.matchAll(/(\d[\d,]*(?:\.\d+)?)\s*(?:ש"ח|שקלים|שקל|ש\.ח|₪|nis|ils)/gi)].map(m => toNumber(m[1]));
+    if (!fixed.length && unit){
+      const m = rest.match(/(\d[\d,]*(?:\.\d+)?)/);
+      if (m) fixed = [toNumber(m[1])];
+    }
+    const sum = a => a.reduce((x,y) => x + y, 0);
+    return { percent: sum(percents), fixed: sum(fixed), unit };
+  }
+
+  function parseTax(raw){
+    const text = clean(raw);
+    const res = { ok:false, raw:text, exempt:false, unit:null, alts:[], needsQty:false, error:"" };
+    if (!text){ res.error = "אין נתון מס לטווח מחירים זה."; return res; }
+
+    // הסרת המילה "שיעור" ורווחים מיותרים
+    let t = text.replace(/שיעור(?:י)?\s*(?:של)?/g, " ").replace(/\s+/g, " ").trim();
+
+    const hasDigits = /\d/.test(t);
+    if (/פטור/.test(t) && !hasDigits){ res.ok = true; res.exempt = true; res.alts = [{percent:0, fixed:0, unit:null}]; return res; }
+    if (!hasDigits){ res.error = "לא נמצאו נתונים מספריים: " + text; return res; }
+
+    // פיצול לחלופות לפי אל"פ = אבל לא פחות
+    const segs = t.split(/אל\s*"?\s*'?\s*פ|אך\s*לא\s*פחות\s*(?:מ|מ-)?/).map(s => s.trim()).filter(Boolean);
+    const alts = segs.map(parseSegment).filter(a => a.percent > 0 || a.fixed > 0);
+    if (!alts.length){ res.error = "לא ניתן לפענח את נתון המס: " + text; return res; }
+
+    res.alts = alts;
+    res.unit = alts.map(a => a.unit).find(Boolean) || null;
+    res.needsQty = !!res.unit && alts.some(a => a.fixed > 0);
+    res.ok = true;
+    return res;
+  }
+
+  /* ============================ טעינת הנתונים ============================ */
+
+  let RECORDS = [];
+  let TREE = new Map(); // l1 -> Map(l2 -> Map(label -> record))
+
+  function buildTree(records){
+    const tree = new Map();
+    for (const r of records){
+      const l1 = r.l1 || "כללי";
+      const l2 = r.l2 || "כללי";
+      let base = r.l3 || r.l2 || l1;
+      if (!tree.has(l1)) tree.set(l1, new Map());
+      const m1 = tree.get(l1);
+      if (!m1.has(l2)) m1.set(l2, new Map());
+      const m2 = m1.get(l2);
+      let label = base, i = 2;
+      while (m2.has(label)){
+        const prev = m2.get(label);
+        if (prev.t1 === r.t1 && prev.t2 === r.t2 && prev.t3 === r.t3 && prev.t4 === r.t4) { label = null; break; }
+        label = base + " (" + (i++) + ")";
+      }
+      if (label) m2.set(label, r);
+    }
+    return tree;
+  }
+
+  const heSort = (a,b) => String(a).localeCompare(String(b), "he");
+
+  function setStatus(kind, text, spinner){
+    const el = $("status");
+    el.className = "status" + (kind === "err" ? " err" : kind === "ok" ? " ok" : "");
+    el.innerHTML = (spinner ? '<span class="spinner"></span>' : "") + "<span>" + esc(text) + "</span>";
+  }
+
+  const PROXIES = [
+    u => u,
+    u => "https://api.allorigins.win/raw?url=" + encodeURIComponent(u),
+    u => "https://corsproxy.io/?url=" + encodeURIComponent(u)
+  ];
+
+  async function fetchData(){
+    let lastErr = "";
+    for (let i = 0; i < PROXIES.length; i++){
+      try{
+        setStatus("", i === 0 ? "טוען את טבלת המסים…" : "מנסה דרך שרת מתווך (" + i + ")…", true);
+        const res = await fetch(PROXIES[i](API_URL), {headers:{"Accept":"application/json"}});
+        if (!res.ok) { lastErr = "HTTP " + res.status; continue; }
+        const json = JSON.parse(await res.text());
+        const recs = extractRecords(json);
+        if (recs.length) return recs;
+        lastErr = "מבנה הנתונים לא זוהה";
+      }catch(e){ lastErr = e.message || String(e); }
+    }
+    throw new Error(lastErr || "טעינה נכשלה");
+  }
+
+  function saveCache(recs){
+    try{ localStorage.setItem(CACHE_KEY, JSON.stringify({ts:Date.now(), recs})); }catch(e){}
+  }
+  function loadCache(){
+    try{
+      const o = JSON.parse(localStorage.getItem(CACHE_KEY) || "null");
+      if (o && Array.isArray(o.recs) && o.recs.length && (Date.now() - o.ts) < CACHE_TTL) return o.recs;
+    }catch(e){}
+    return null;
+  }
+
+  function useRecords(recs, msg){
+    const old = $("loaderCard").querySelector("#refreshBtn");
+    if (old) old.remove();
+    RECORDS = recs;
+    TREE = buildTree(recs);
+    fillSelect($("l1"), [...TREE.keys()].sort(heSort));
+    $("pickCard").classList.remove("hidden");
+    $("amountCard").classList.remove("hidden");
+    $("fallback").classList.add("hidden");
+    setStatus("ok", msg + " — " + nfNum.format(recs.length) + " רשומות, " + TREE.size + " קטגוריות ראשיות.", false);
+    const btn = document.createElement("button");
+    btn.id = "refreshBtn";
+    btn.className = "btn-ghost";
+    btn.style.cssText = "margin-top:12px;padding:6px 12px;font-size:13px";
+    btn.textContent = "רענון נתונים";
+    btn.onclick = () => { try{ localStorage.removeItem(CACHE_KEY); }catch(e){} boot(true); };
+    $("status").after(btn);
+  }
+
+  async function boot(force){
+    const old = $("loaderCard").querySelector("#refreshBtn");
+    if (old) old.remove();
+    if (!force){
+      const cached = loadCache();
+      if (cached){ useRecords(cached, "נטען מהמטמון המקומי"); return; }
+    }
+    try{
+      const recs = await fetchData();
+      saveCache(recs);
+      useRecords(recs, "הנתונים נטענו מרשות המסים");
+    }catch(e){
+      setStatus("err", "טעינה אוטומטית נכשלה (" + e.message + ").", false);
+      $("fallback").classList.remove("hidden");
+    }
+  }
+
+  function loadFromText(txt){
+    try{
+      const recs = extractRecords(JSON.parse(txt));
+      if (!recs.length) throw new Error("לא נמצאו רשומות מתאימות בקובץ");
+      saveCache(recs);
+      useRecords(recs, "הנתונים נטענו ידנית");
+    }catch(e){
+      setStatus("err", "שגיאה בקריאת ה-JSON: " + (e.message || e), false);
+    }
+  }
+
+  $("retryBtn").onclick = () => boot(true);
+  $("loadPasteBtn").onclick = () => loadFromText($("pasteInput").value.trim());
+  $("fileInput").onchange = e => {
+    const f = e.target.files[0]; if (!f) return;
+    const fr = new FileReader();
+    fr.onload = () => loadFromText(String(fr.result));
+    fr.readAsText(f);
+  };
+
+  /* ============================== ממשק בחירה ============================== */
+
+  function fillSelect(sel, items){
+    sel.innerHTML = '<option value="">— בחרו —</option>';
+    for (const it of items){
+      const o = document.createElement("option");
+      o.value = it; o.textContent = it;
+      sel.appendChild(o);
+    }
+    sel.disabled = items.length === 0;
+  }
+
+  function resetSelect(sel){
+    sel.innerHTML = '<option value="">— בחרו —</option>';
+    sel.disabled = true;
+  }
+
+  $("l1").onchange = () => {
+    const m1 = TREE.get($("l1").value);
+    resetSelect($("l2")); resetSelect($("l3"));
+    if (m1) fillSelect($("l2"), [...m1.keys()].sort(heSort));
+    calc();
+  };
+  $("l2").onchange = () => {
+    const m1 = TREE.get($("l1").value);
+    const m2 = m1 && m1.get($("l2").value);
+    resetSelect($("l3"));
+    if (m2) fillSelect($("l3"), [...m2.keys()].sort(heSort));
+    calc();
+  };
+  $("l3").onchange = calc;
+
+  function currentRecord(){
+    const m1 = TREE.get($("l1").value);
+    const m2 = m1 && m1.get($("l2").value);
+    return (m2 && m2.get($("l3").value)) || null;
+  }
+
+  /* ============================== חיפוש מהיר ============================== */
+
+  function searchProducts(q){
+    const out = [];
+    const needle = q.trim();
+    if (needle.length < 2) return out;
+    for (const [l1, m1] of TREE){
+      for (const [l2, m2] of m1){
+        for (const [l3] of m2){
+          const hay = l1 + " " + l2 + " " + l3;
+          if (hay.indexOf(needle) !== -1){ out.push({l1, l2, l3}); if (out.length >= 60) return out; }
+        }
+      }
+    }
+    return out;
+  }
+
+  $("search").addEventListener("input", () => {
+    const box = $("results");
+    const hits = searchProducts($("search").value);
+    if (!hits.length){ box.classList.remove("open"); box.innerHTML = ""; return; }
+    box.innerHTML = hits.map((h,i) =>
+      '<button type="button" data-i="' + i + '"><span class="r1">' + esc(h.l3) + '</span><br>' +
+      '<span class="r2">' + esc(h.l1) + " ← " + esc(h.l2) + '</span></button>').join("");
+    box.classList.add("open");
+    box.querySelectorAll("button").forEach(b => {
+      b.onclick = () => {
+        const h = hits[+b.dataset.i];
+        $("l1").value = h.l1; $("l1").onchange();
+        $("l2").value = h.l2; $("l2").onchange();
+        $("l3").value = h.l3;
+        box.classList.remove("open");
+        $("search").value = h.l3;
+        calc();
+      };
+    });
+  });
+  document.addEventListener("click", e => {
+    if (!e.target.closest(".search-wrap")) $("results").classList.remove("open");
+  });
+
+  /* ============================== חישוב המס ============================== */
+
+  function bandOf(usd){
+    if (usd <= 75) return {key:"t1", label:"עד 75$"};
+    if (usd <= 500) return {key:"t2", label:"מעל 75$ ועד 500$"};
+    if (usd <= 1000) return {key:"t3", label:"מעל 500$ ועד 1,000$"};
+    return {key:"t4", label:"מעל 1,000$"};
+  }
+
+  ["amount","currency","rate","qty","eurRate"].forEach(id => {
+    const el = $(id);
+    el.addEventListener("input", calc);
+    el.addEventListener("change", calc);
+  });
+
+  // מציג/מסתיר את שורת השדות הנוספים (כמות / שער אירו)
+  function toggleExtras(needsQty, needsEur){
+    $("qtyField").classList.toggle("hidden", !needsQty);
+    $("eurField").classList.toggle("hidden", !needsEur);
+    $("extraRow").classList.toggle("hidden", !needsQty && !needsEur);
+  }
+
+  function calc(){
+    const rec = currentRecord();
+    const amount = toNumber($("amount").value);
+    const cur = $("currency").value;
+    const usdRate = toNumber($("rate").value) || 3.7;
+    const eurRate = toNumber($("eurRate").value) || 4;
+
+    if (!rec){ $("resultCard").classList.add("hidden"); toggleExtras(false, cur === "EUR"); return; }
+
+    // המרות
+    let valueILS, valueUSD;
+    if (cur === "USD"){ valueUSD = amount; valueILS = amount * usdRate; }
+    else if (cur === "ILS"){ valueILS = amount; valueUSD = usdRate ? amount / usdRate : 0; }
+    else { valueILS = amount * eurRate; valueUSD = usdRate ? valueILS / usdRate : 0; }
+
+    const band = bandOf(valueUSD);
+    const parsed = parseTax(rec[band.key]);
+
+    // שדה כמות מוצג רק כשצריך (טבק/אלכוהול/יחידות)
+    toggleExtras(parsed.needsQty, cur === "EUR");
+    if (parsed.needsQty){
+      $("qtyLabel").textContent = "כמות (" + parsed.unit.label + ")";
+      $("qtyHint").textContent = parsed.unit.id === "cig"
+        ? 'הזינו כמות באלפי סיגריות (למשל 200 סיגריות = 0.2)'
+        : parsed.unit.id === "liter" ? "הזינו את כמות הליטרים הכוללת"
+        : parsed.unit.id === "kg" ? 'הזינו את המשקל בק"ג' : "הזינו את מספר היחידות";
+    }
+    const qty = parsed.needsQty ? toNumber($("qty").value) : 0;
+
+    $("resultCard").classList.remove("hidden");
+
+    // תגיות
+    $("badges").innerHTML =
+      '<span class="chip">' + esc(rec.l1) + "</span>" +
+      (rec.l2 ? '<span class="chip">' + esc(rec.l2) + "</span>" : "") +
+      '<span class="chip">מדרגה: ' + esc(band.label) + "</span>";
+
+    if (!parsed.ok){
+      $("taxMain").textContent = "לא ניתן לחשב";
+      $("taxAlt").textContent = parsed.error;
+      $("kv").innerHTML = "";
+      $("formula").textContent = 'נתון המס בטבלה: "' + (parsed.raw || "—") + '"';
+      showNote(rec.note);
+      return;
+    }
+
+    // חישוב כל חלופה: אחוז × שווי + סכום קבוע × כמות; המס = הגבוה מביניהן
+    const results = parsed.alts.map(a => ({
+      a,
+      value: valueILS * (a.percent / 100) + a.fixed * qty
+    }));
+    const best = results.reduce((x, y) => (y.value > x.value ? y : x), results[0]);
+    const tax = amount > 0 ? best.value : 0;
+
+    $("taxMain").textContent = parsed.exempt && tax === 0 ? "פטור ממס" : nfILS.format(tax);
+    $("taxAlt").textContent = amount > 0 && !(parsed.exempt && tax === 0)
+      ? "≈ " + nfUSD.format(usdRate ? tax / usdRate : 0)
+      : (amount > 0 ? "" : "הזינו את סכום ההזמנה לחישוב");
+
+    const effective = valueILS > 0 ? (tax / valueILS) * 100 : 0;
+    const rows = [
+      ["המוצר שנבחר", (rec.l3 || rec.l2 || rec.l1)],
+      ["שווי ההזמנה", nfILS.format(valueILS) + " (" + nfUSD.format(valueUSD) + ")"],
+      ["מדרגת מחיר", band.label],
+      ["סך המסים לפי הטבלה", parsed.raw || "—"],
+      ["שיעור מס אפקטיבי", nfNum.format(effective) + "%"]
+    ];
+    if (parsed.needsQty) rows.splice(2, 0, ["כמות", nfNum.format(qty) + " " + parsed.unit.label]);
+    rows.push(["סה\"כ לתשלום (שווי + מס)", nfILS.format(valueILS + tax)]);
+    $("kv").innerHTML = rows.map(r =>
+      "<tr><td>" + esc(r[0]) + "</td><td>" + esc(r[1]) + "</td></tr>").join("");
+
+    // פירוט החישוב
+    const lines = results.map((r, i) => {
+      const parts = [];
+      if (r.a.percent) parts.push(nfNum.format(r.a.percent) + "% × " + nfILS.format(valueILS));
+      if (r.a.fixed) parts.push(nfILS.format(r.a.fixed) + " × " + nfNum.format(qty) + " " + (r.a.unit ? r.a.unit.label : ""));
+      const name = results.length > 1 ? (i === 0 ? "חלופה א'" : 'חלופה ב\' (אל"פ — אבל לא פחות)') : "חישוב";
+      return name + ": " + (parts.join(" + ") || "0") + " = " + nfILS.format(r.value) + (r === best && results.length > 1 ? "  ← נבחר (הגבוה)" : "");
+    });
+    $("formula").textContent = lines.join("\n") + '\n\nנתון מקורי בטבלה: "' + parsed.raw + '"';
+
+    showNote(rec.note);
+  }
+
+  function showNote(note){
+    const n = clean(note);
+    $("noteBox").classList.toggle("hidden", !n);
+    $("noteText").textContent = n;
+  }
+
+  boot(false);
+})();
+</script>
+</body>
+</html>
