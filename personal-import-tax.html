@@ -239,10 +239,15 @@
     המס בפועל נקבע על ידי המכס ועשוי לכלול הוצאות הובלה וביטוח, אגרות ועמלות עמיל מכס, ותלוי בסיווג הפרטי המדויק.
     מדרגות המחיר נקבעות לפי שווי הטובין בדולר. עבור טבק ואלכוהול המס מחושב לפי כמות (ק"ג / אלף סיגריות / ליטר),
     ונלקח הסכום הגבוה מבין החלופות ("אל"פ" = אבל לא פחות).
-    שערי החליפין הם השערים היציגים של בנק ישראל (EDGE / BOI API) ומתעדכנים אוטומטית; ניתן לערוך אותם ידנית.
+    טבלת המסים והשערים היציגים של בנק ישראל מוטמעים בדף ומתעדכנים אוטומטית פעם ביום (GitHub Actions),
+    כך שהחישוב עובד גם ללא חיבור לאינטרנט. ניתן לערוך את שערי החליפין ידנית.
     שימו לב שהמכס עצמו מחשב לפי שער המכס שלו, שעשוי להיות שונה במעט מהשער היציג.
   </p>
 </div>
+
+<!-- EMBEDDED-DATA:START -->
+<script type="application/json" id="embeddedData">{}</script>
+<!-- EMBEDDED-DATA:END -->
 
 <script>
 (function(){
@@ -523,7 +528,33 @@
     return null;
   }
 
-  function useRecords(recs, msg){
+  /* ===================== נתונים מוטמעים (GitHub Actions) ===================== */
+  // הדף נבנה עם עותק של הנתונים בתוכו, כדי שלא יידרש שום API מהדפדפן.
+  // הרענון מ-GitHub Actions מתבצע פעם ביום; ניתן גם לנסות משיכה חיה מהכפתורים.
+
+  let EMBEDDED = null;
+
+  function readEmbedded(){
+    const el = document.getElementById("embeddedData");
+    if (!el) return null;
+    let o;
+    try{ o = JSON.parse(el.textContent.trim() || "{}"); }catch(e){ return null; }
+    if (!o || !Array.isArray(o.rows) || !o.rows.length) return null;
+    const cols = o.cols || [];
+    const strings = o.strings || [];
+    const records = o.rows.map(r => {
+      const rec = {};
+      cols.forEach((c, i) => {
+        const v = r[i];
+        rec[c] = typeof v === "number" ? (strings[v] || "") : clean(v);
+      });
+      return rec;
+    }).filter(r => r.l1 && (r.t1 || r.t2 || r.t3 || r.t4));
+    if (!records.length) return null;
+    return { records, rates: o.rates || null, updated: o.updated || "" };
+  }
+
+  function useRecords(recs, msg, state){
     const old = $("loaderCard").querySelector("#refreshBtn");
     if (old) old.remove();
     RECORDS = recs;
@@ -532,30 +563,42 @@
     $("pickCard").classList.remove("hidden");
     $("amountCard").classList.remove("hidden");
     $("fallback").classList.add("hidden");
-    setStatus("ok", msg + " — " + nfNum.format(recs.length) + " רשומות, " + TREE.size + " קטגוריות ראשיות.", false);
+    setStatus(state || "ok", msg + " — " + nfNum.format(recs.length) + " רשומות, " + TREE.size + " קטגוריות ראשיות.", false);
     const btn = document.createElement("button");
     btn.id = "refreshBtn";
     btn.className = "btn-ghost";
     btn.style.cssText = "margin-top:12px;padding:6px 12px;font-size:13px";
-    btn.textContent = "רענון נתונים";
+    btn.textContent = "נסה למשוך נתונים עדכניים";
     btn.onclick = () => { try{ localStorage.removeItem(CACHE_KEY); }catch(e){} boot(true); };
     $("status").after(btn);
+  }
+
+  function embeddedLabel(){
+    return "נתונים מוטמעים בדף" + (EMBEDDED.updated ? " (עודכן: " + EMBEDDED.updated + ")" : "");
   }
 
   async function boot(force){
     const old = $("loaderCard").querySelector("#refreshBtn");
     if (old) old.remove();
+    if (!EMBEDDED) EMBEDDED = readEmbedded();
+
     if (!force){
+      // הנתונים המוטמעים הם מקור האמת — אין צורך בשום קריאת רשת
+      if (EMBEDDED){ useRecords(EMBEDDED.records, embeddedLabel()); return; }
       const cached = loadCache();
       if (cached){ useRecords(cached, "נטען מהמטמון המקומי"); return; }
     }
     try{
       const recs = await fetchData();
       saveCache(recs);
-      useRecords(recs, "הנתונים נטענו מרשות המסים");
+      useRecords(recs, "הנתונים נטענו ישירות מרשות המסים");
     }catch(e){
-      setStatus("err", "טעינה אוטומטית נכשלה (" + e.message + ").", false);
-      $("fallback").classList.remove("hidden");
+      if (EMBEDDED){
+        useRecords(EMBEDDED.records, "משיכה חיה נכשלה (חסימת CORS) — " + embeddedLabel(), "err");
+      }else{
+        setStatus("err", "טעינה אוטומטית נכשלה (" + e.message + ").", false);
+        $("fallback").classList.remove("hidden");
+      }
     }
   }
 
@@ -734,8 +777,25 @@
     return "";
   }
 
+  // שערים שהוטמעו בדף על ידי ה-Workflow ({date, USD, EUR, GBP})
+  function embeddedRates(){
+    const r = EMBEDDED && EMBEDDED.rates;
+    if (!r || !(r.USD > 0)) return null;
+    const out = {};
+    for (const c of ["USD","EUR","GBP"]) if (r[c] > 0) out[c] = { rate: r[c], date: r.date || "" };
+    return out;
+  }
+
   async function loadRates(force){
     if (!force){
+      const emb = embeddedRates();
+      if (emb){
+        RATES = Object.assign({}, DEFAULT_RATES, emb);
+        RATES_DATE = (EMBEDDED.rates && EMBEDDED.rates.date) || "";
+        RATES_SOURCE = "בנק ישראל";
+        applyRates(); renderRates("ok"); calc();
+        return;
+      }
       const cached = loadRatesCache();
       if (cached){
         RATES = Object.assign({}, DEFAULT_RATES, cached.rates);
@@ -755,9 +815,18 @@
       saveRates(found, RATES_DATE);
       applyRates(); renderRates("ok");
     }else{
-      RATES = Object.assign({}, DEFAULT_RATES);
-      RATES_DATE = ""; RATES_SOURCE = "ברירת מחדל";
-      applyRates(); renderRates("error");
+      const emb = embeddedRates();
+      if (emb){
+        // המשיכה החיה נכשלה — נשארים עם השערים שהוטמעו בדף
+        RATES = Object.assign({}, DEFAULT_RATES, emb);
+        RATES_DATE = (EMBEDDED.rates && EMBEDDED.rates.date) || "";
+        RATES_SOURCE = "בנק ישראל";
+        applyRates(); renderRates("ok");
+      }else{
+        RATES = Object.assign({}, DEFAULT_RATES);
+        RATES_DATE = ""; RATES_SOURCE = "ברירת מחדל";
+        applyRates(); renderRates("error");
+      }
     }
     calc();
   }
@@ -1013,6 +1082,7 @@
     $("noteText").textContent = n;
   }
 
+  EMBEDDED = readEmbedded();
   applyRates();
   boot(false);
   loadRates(false);
