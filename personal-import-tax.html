@@ -237,8 +237,9 @@
   <p class="muted-box">
     החישוב מבוסס על טבלת המסים המרוכזת (ConcentratedTaxesView) של רשות המסים ומיועד להערכה בלבד.
     המס בפועל נקבע על ידי המכס ועשוי לכלול הוצאות הובלה וביטוח, אגרות ועמלות עמיל מכס, ותלוי בסיווג הפרטי המדויק.
-    מדרגות המחיר נקבעות לפי שווי הטובין בדולר. עבור טבק ואלכוהול המס מחושב לפי כמות (ק"ג / אלף סיגריות / ליטר),
-    ונלקח הסכום הגבוה מבין החלופות ("אל"פ" = אבל לא פחות).
+    מדרגות המחיר נקבעות לפי שווי הטובין בדולר. במוצרים מסוימים (טבק, אלכוהול, בשר ועוד) המס מחושב גם לפי כמות
+    (ק"ג / ליטר / מ"ל / אלף יחידות / פריט), ואז "אל"פ" = אבל לא פחות (נלקח הסכום הגבוה)
+    ו"אל"י" = אבל לא יותר (נלקח הסכום הנמוך).
     טבלת המסים והשערים היציגים של בנק ישראל מוטמעים בדף ומתעדכנים אוטומטית פעם ביום (GitHub Actions),
     כך שהחישוב עובד גם ללא חיבור לאינטרנט. ניתן לערוך את שערי החליפין ידנית.
     שימו לב שהמכס עצמו מחשב לפי שער המכס שלו, שעשוי להיות שונה במעט מהשער היציג.
@@ -267,6 +268,11 @@
   };
   // שערי ברירת מחדל — משמשים רק אם בנק ישראל אינו זמין
   const DEFAULT_RATES = { USD:{rate:3.7}, EUR:{rate:4.0}, GBP:{rate:4.7} };
+
+  // שיעור המע"מ בישראל. בטבלה הוא מופיע כרכיב בפני עצמו ("18.00%",
+  // או כרכיב בנוסחה: "18%+5.31 ₪ לקילוגרם"), ולכן מסומן ככזה בפירוט.
+  // אם שיעור המע"מ ישתנה, הנתונים יגיעו עם השיעור החדש והסימון פשוט לא יופיע.
+  const VAT_RATE = 18;
 
   const $ = id => document.getElementById(id);
   document.getElementById("apiLink").href = API_URL;
@@ -399,7 +405,8 @@
         const c = FIELDS[keyNorm(k)];
         if (c) rec[c] = clean(v);
       }
-      if (rec.l1 && (rec.t1 || rec.t2 || rec.t3 || rec.t4)) out.push(rec);
+      // גם שורה ללא נתוני מס נשמרת — היא תציג "אין נתון" במקום להיעלם
+      if (rec.l1) out.push(rec);
     }
     return out;
   }
@@ -408,12 +415,31 @@
   // מחזיר: {ok, raw, exempt, unit, alts:[{percent, fixed}], needsQty}
   // unit = {id, label, per}  למשל  {id:"kg", label:'ק"ג', per:'לק"ג'}
 
+  // הסדר קובע — התבנית הראשונה שמתאימה מנצחת.
+  // "מיליליטר" ו"ליטר אלכוהול" חייבים להיבדק לפני "ליטר", כי הם מכילים אותו.
   const UNIT_PATTERNS = [
-    { id:"cig",   re:/(?:ל\s*-?\s*)?(?:אלף|1[\s,]?000)\s*סיגריות|לאלף\s*סיגריות/ , label:"אלף סיגריות", per:"לאלף סיגריות" },
-    { id:"kg",    re:/ל?ק"ג|לקילוגרם|לקילו|קילוגרם/ , label:'ק"ג', per:'לק"ג' },
-    { id:"liter", re:/ל?ליטר/ , label:"ליטר", per:"לליטר" },
-    { id:"unit",  re:/ליחיד(?:ה|ות)|לפריט|ליח'/ , label:"יחידה", per:"ליחידה" }
+    { id:"cig",   re:/(?:ל\s*-?\s*)?(?:אלף|1[\s,]?000)\s*סיגריות|סיגריות/ , label:"אלף סיגריות" },
+    { id:"kunit", re:/(?:ל\s*-?\s*)?(?:אלף|1[\s,]?000)\s*(?:יחידות|יח')/ , label:"אלף יחידות" },
+    { id:"ml",    re:/מיליליטר|מ"ל/ , label:'מ"ל' },
+    { id:"lpa",   re:/ליטר\s*(?:אלכוהול|כוהל)/ , label:"ליטר אלכוהול טהור" },
+    { id:"kg",    re:/ק"ג|קילוגרם|קילו/ , label:'ק"ג' },
+    { id:"liter", re:/ליטר/ , label:"ליטר" },
+    { id:"unit",  re:/לכל\s*אחד|ליחיד(?:ה|ות)|לפריט|ליח'/ , label:"יחידה" }
   ];
+
+  const QTY_HINTS = {
+    cig:   "הזינו כמות באלפי סיגריות (200 סיגריות = 0.2)",
+    kunit: "הזינו כמות באלפי יחידות (200 יחידות = 0.2)",
+    ml:    "הזינו את הנפח במיליליטרים",
+    lpa:   "ליטרים של אלכוהול טהור: נפח × אחוז האלכוהול (בקבוק 0.75 ליטר של 40% = 0.3)",
+    kg:    'הזינו את המשקל בק"ג',
+    liter: "הזינו את כמות הליטרים הכוללת",
+    unit:  "הזינו את מספר הפריטים"
+  };
+
+  // מפרידי החלופות. נדרש גרש/גרשיים (אל"פ / אל"י) או הביטוי המלא,
+  // כדי לא לתפוס בטעות רצף אותיות בתוך מילה.
+  const SEP_RE = /(אל\s*["']\s*פ|אך\s*לא\s*פחות|אל\s*["']\s*י|אך\s*לא\s*יותר)/;
 
   function detectUnit(text){
     for (const u of UNIT_PATTERNS) if (u.re.test(text)) return u;
@@ -434,6 +460,7 @@
       if (m) fixed = [toNumber(m[1])];
     }
     const sum = a => a.reduce((x,y) => x + y, 0);
+    // סכום קבוע ללא יחידה מזוהה — נוסף פעם אחת ולא מוכפל בכמות, כדי שלא ייעלם
     return { percent: sum(percents), fixed: sum(fixed), unit };
   }
 
@@ -449,14 +476,26 @@
     if (/פטור/.test(t) && !hasDigits){ res.ok = true; res.exempt = true; res.alts = [{percent:0, fixed:0, unit:null}]; return res; }
     if (!hasDigits){ res.error = "לא נמצאו נתונים מספריים: " + text; return res; }
 
-    // פיצול לחלופות לפי אל"פ = אבל לא פחות
-    const segs = t.split(/אל\s*"?\s*'?\s*פ|אך\s*לא\s*פחות\s*(?:מ|מ-)?/).map(s => s.trim()).filter(Boolean);
-    const alts = segs.map(parseSegment).filter(a => a.percent > 0 || a.fixed > 0);
+    // פיצול לחלופות:
+    //   אל"פ = אבל לא פחות  -> לוקחים את הגבוה
+    //   אל"י = אבל לא יותר  -> לוקחים את הנמוך (תקרה)
+    const parts = t.split(SEP_RE);
+    const alts = [];
+    for (let i = 0; i < parts.length; i += 2){
+      const seg = (parts[i] || "").trim();
+      if (!seg) continue;
+      const a = parseSegment(seg);
+      if (!(a.percent > 0 || a.fixed > 0)) continue;
+      const sep = i === 0 ? "" : (parts[i - 1] || "");
+      a.op = i === 0 ? "first" : (/פחות|פ\s*$|"\s*פ/.test(sep) ? "max" : "min");
+      alts.push(a);
+    }
     if (!alts.length){ res.error = "לא ניתן לפענח את נתון המס: " + text; return res; }
+    if (alts.length) alts[0].op = "first";
 
     res.alts = alts;
     res.unit = alts.map(a => a.unit).find(Boolean) || null;
-    res.needsQty = !!res.unit && alts.some(a => a.fixed > 0);
+    res.needsQty = alts.some(a => a.fixed > 0 && a.unit);
     res.ok = true;
     return res;
   }
@@ -549,7 +588,7 @@
         rec[c] = typeof v === "number" ? (strings[v] || "") : clean(v);
       });
       return rec;
-    }).filter(r => r.l1 && (r.t1 || r.t2 || r.t3 || r.t4));
+    }).filter(r => r.l1);
     if (!records.length) return null;
     return { records, rates: o.rates || null, updated: o.updated || "" };
   }
@@ -984,10 +1023,7 @@
     toggleExtras(parsed.needsQty);
     if (parsed.needsQty){
       $("qtyLabel").textContent = "כמות (" + parsed.unit.label + ")";
-      $("qtyHint").textContent = parsed.unit.id === "cig"
-        ? 'הזינו כמות באלפי סיגריות (למשל 200 סיגריות = 0.2)'
-        : parsed.unit.id === "liter" ? "הזינו את כמות הליטרים הכוללת"
-        : parsed.unit.id === "kg" ? 'הזינו את המשקל בק"ג' : "הזינו את מספר היחידות";
+      $("qtyHint").textContent = QTY_HINTS[parsed.unit.id] || "הזינו את הכמות";
     }
     const qty = parsed.needsQty ? toNumber($("qty").value) : 0;
 
@@ -1008,12 +1044,18 @@
       return;
     }
 
-    // חישוב כל חלופה: אחוז × שווי + סכום קבוע × כמות; המס = הגבוה מביניהן
+    // כל חלופה: אחוז × שווי + סכום קבוע × כמות (סכום ללא יחידה מזוהה נוסף פעם אחת).
+    // אחר כך מיישמים את המפרידים לפי הסדר: אל"פ => הגבוה, אל"י => הנמוך.
     const results = parsed.alts.map(a => ({
       a,
-      value: valueILS * (a.percent / 100) + a.fixed * qty
+      value: valueILS * (a.percent / 100) + a.fixed * (a.unit ? qty : 1)
     }));
-    const best = results.reduce((x, y) => (y.value > x.value ? y : x), results[0]);
+    let acc = results[0];
+    for (let i = 1; i < results.length; i++){
+      const r = results[i];
+      acc = (r.a.op === "min") ? (r.value < acc.value ? r : acc) : (r.value > acc.value ? r : acc);
+    }
+    const best = acc;
     const tax = amount > 0 ? best.value : 0;
 
     $("taxMain").textContent = parsed.exempt && tax === 0 ? "פטור ממס" : nfILS.format(tax);
@@ -1027,7 +1069,7 @@
       ["שווי ההזמנה", nfILS.format(valueILS) + " (" + nfUSD.format(valueUSD) + ")"],
       ["מדרגת מחיר", band.label],
       ["שער המרה", rateLine(cur, selRate, usdRate)],
-      ["סך המסים לפי הטבלה", parsed.raw || "—"],
+      ["סך המסים לפי הטבלה", (parsed.raw || "—") + (isVatOnly(parsed) ? ' — מע"מ בלבד' : "")],
       ["שיעור מס אפקטיבי", nfNum.format(effective) + "%"]
     ];
     if (parsed.needsQty) rows.splice(2, 0, ["כמות", nfNum.format(qty) + " " + parsed.unit.label]);
@@ -1038,14 +1080,26 @@
     // פירוט החישוב
     const lines = results.map((r, i) => {
       const parts = [];
-      if (r.a.percent) parts.push(nfNum.format(r.a.percent) + "% × " + nfILS.format(valueILS));
-      if (r.a.fixed) parts.push(nfILS.format(r.a.fixed) + " × " + nfNum.format(qty) + " " + (r.a.unit ? r.a.unit.label : ""));
-      const name = results.length > 1 ? (i === 0 ? "חלופה א'" : 'חלופה ב\' (אל"פ — אבל לא פחות)') : "חישוב";
-      return name + ": " + (parts.join(" + ") || "0") + " = " + nfILS.format(r.value) + (r === best && results.length > 1 ? "  ← נבחר (הגבוה)" : "");
+      if (r.a.percent) parts.push(nfNum.format(r.a.percent) + "%" +
+        (r.a.percent === VAT_RATE ? ' (מע"מ)' : "") + " × " + nfILS.format(valueILS));
+      if (r.a.fixed) parts.push(nfILS.format(r.a.fixed) + (r.a.unit ? " × " + nfNum.format(qty) + " " + r.a.unit.label : " (סכום קבוע)"));
+      const name = results.length === 1 ? "חישוב"
+        : i === 0 ? "חלופה א'"
+        : r.a.op === "min" ? 'חלופה ב\' (אל"י — אבל לא יותר)'
+        : 'חלופה ב\' (אל"פ — אבל לא פחות)';
+      const chosen = results.length > 1 && r === best
+        ? "  ← נבחר (" + (results.some(x => x.a.op === "min") ? "הנמוך" : "הגבוה") + ")" : "";
+      return name + ": " + (parts.join(" + ") || "0") + " = " + nfILS.format(r.value) + chosen;
     });
     $("formula").textContent = lines.join("\n") + '\n\nנתון מקורי בטבלה: "' + parsed.raw + '"';
 
     showNote(rec.note);
+  }
+
+  // האם המס הוא מע"מ בלבד (ללא מכס ומס קנייה)?
+  function isVatOnly(parsed){
+    return parsed.ok && !parsed.exempt && parsed.alts.length === 1 &&
+      parsed.alts[0].percent === VAT_RATE && !parsed.alts[0].fixed;
   }
 
   // קריאת שער משדה: ריק => השער מבנק ישראל; ערך לא חיובי => שגיאה (NaN)

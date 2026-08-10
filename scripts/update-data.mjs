@@ -138,17 +138,21 @@ function findArrayOfArrays(json){
   return best;
 }
 
+// נשמרת כל שורה שיש לה קטגוריה ראשית, גם אם חסרים בה נתוני מס —
+// עדיף שהמוצר יופיע במחשבון ויציג "אין נתון" מאשר שייעלם בשקט.
 function mapRecords(rows){
   if (!rows || !rows.length || Array.isArray(rows[0])) return [];
   const out = [];
+  let dropped = 0;
   for (const r of rows){
     const rec = {};
     for (const [k, v] of Object.entries(r)){
       const c = FIELDS[keyNorm(k)];
       if (c) rec[c] = clean(v);
     }
-    if (rec.l1 && (rec.t1 || rec.t2 || rec.t3 || rec.t4)) out.push(rec);
+    if (rec.l1) out.push(rec); else dropped++;
   }
+  if (rows.length) console.log(`  שורות גולמיות: ${rows.length} | נשמרו: ${out.length} | ללא קטגוריה ראשית: ${dropped}`);
   return out;
 }
 
