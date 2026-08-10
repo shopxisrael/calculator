@@ -663,10 +663,12 @@
     const then = new Date(+m[1], +m[2] - 1, +m[3]);
     const today = new Date(); today.setHours(0, 0, 0, 0);
     const days = Math.round((today - then) / 86400000);
-    if (days <= 0) return { text:"עודכן היום", days:0 };
-    if (days === 1) return { text:"עודכן אתמול", days:1 };
-    if (days < 7) return { text:"עודכן לפני " + days + " ימים", days };
-    return { text:"עודכן ב-" + fmtDate(iso), days };
+    // התאריך המלא מוצג תמיד לצד הניסוח היחסי, כדי שיהיה ברור שזה נתון ולא סתם טקסט
+    const date = fmtDate(iso);
+    if (days <= 0) return { text:"עודכן היום · " + date, days:0 };
+    if (days === 1) return { text:"עודכן אתמול · " + date, days:1 };
+    if (days < 7) return { text:"עודכן לפני " + days + " ימים · " + date, days };
+    return { text:"עודכן ב-" + date, days };
   }
 
   function showUpdated(){
