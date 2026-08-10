@@ -97,6 +97,11 @@
   .formula{background:#f9fafb;border:1px dashed var(--line);border-radius:10px;padding:10px 12px;
     font-size:13px;color:#475467;margin-top:12px;white-space:pre-wrap;word-break:break-word}
   .muted-box{font-size:12.5px;color:var(--muted);margin-top:18px;line-height:1.7}
+  .terms h2{font-size:15px}
+  .terms .sub{font-size:13px;color:var(--muted);margin-bottom:0}
+  .terms-list{margin:10px 0 0;padding-inline-start:20px;font-size:13px;color:var(--muted);line-height:1.75}
+  .terms-list li{margin-bottom:6px}
+  .terms-list strong{color:#344054}
   .hidden{display:none!important}
   .rates{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
     margin-top:14px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:#fbfcfe;
@@ -211,16 +216,44 @@
     <div class="note hidden" id="noteBox"><h3>הערות נוספות</h3><div id="noteText"></div></div>
   </section>
 
-  <p class="muted-box">
-    החישוב מבוסס על טבלת המסים המרוכזת (ConcentratedTaxesView) של רשות המסים ומיועד להערכה בלבד.
-    המס בפועל נקבע על ידי המכס ועשוי לכלול הוצאות הובלה וביטוח, אגרות ועמלות עמיל מכס, ותלוי בסיווג הפרטי המדויק.
-    מדרגות המחיר נקבעות לפי שווי הטובין בדולר. במוצרים מסוימים (טבק, אלכוהול, בשר ועוד) המס מחושב גם לפי כמות
-    (ק"ג / ליטר / מ"ל / אלף יחידות / פריט), ואז "אל"פ" = אבל לא פחות (נלקח הסכום הגבוה)
-    ו"אל"י" = אבל לא יותר (נלקח הסכום הנמוך).
-    טבלת המסים והשערים היציגים של בנק ישראל מוטמעים בדף ומתעדכנים אוטומטית פעם ביום (GitHub Actions),
-    כך שהחישוב עובד גם ללא חיבור לאינטרנט. ניתן לערוך את שערי החליפין ידנית.
-    שימו לב שהמכס עצמו מחשב לפי שער המכס שלו, שעשוי להיות שונה במעט מהשער היציג.
-  </p>
+  <section class="card terms">
+    <h2>איך המס מחושב</h2>
+    <p class="sub">
+      החישוב מבוסס על טבלת המסים של רשות המסים. סך המסים כולל מע"מ (כיום 18%), מכס ומס קנייה.
+      מדרגת המס נקבעת לפי שווי ההזמנה בדולר, לפי השער היציג של בנק ישראל.
+      בחלק מהמוצרים (טבק, משקאות, בשר ועוד) מתווסף סכום קבוע לפי כמות — ק"ג, ליטר, מ"ל, אלף יחידות או פריט.
+      במקרים כאלה מופיע בטבלה "אל"פ" (אבל לא פחות — נלקח הסכום הגבוה מבין החלופות)
+      או "אל"י" (אבל לא יותר — נלקח הסכום הנמוך). פירוט החישוב המלא מוצג בכל תוצאה.
+    </p>
+
+    <h2 style="margin-top:22px">תנאי שימוש והגבלת אחריות</h2>
+    <ul class="terms-list">
+      <li>המידע המוצג במחשבון נכון ליום הפקת הנתונים בלבד. תאריך העדכון האחרון מוצג בראש הדף.</li>
+      <li>המידע מתייחס <strong>ליבוא אישי לשימוש עצמי בלבד</strong>.</li>
+      <li>המחשבון אינו תומך בחישוב מסים עבור יבוא לאוטונומיה עבור טובין המופיעים ברשימות A1 ו-A2.</li>
+      <li>המחשבון אינו תומך בחישוב מסים עבור יבוא רכב.</li>
+      <li>החישוב אינו כולל אגרות נמל הנדרשות לתשלום ביבוא ימי.</li>
+      <li>החישוב אינו כולל תשלומים אפשריים נוספים, כגון עמלות של עמילי מכס.</li>
+      <li>המידע המוצג אינו מחייב את המכס, ואינו יכול להחליף את הנתונים שיידרשו עבור הצהרת היבוא שתוגש.</li>
+      <li>החישוב מיועד לשימוש כללי בלבד ואינו מיועד לחישובים מורכבים או למקרים מיוחדים.
+          בכל מקרה כזה יש לפנות לרשות המסים.</li>
+      <li>המחשבון אינו קשור לרשות המסים ואינו מופעל מטעמה או מטעם בנק ישראל. הנתונים נאספים
+          ממקורות ציבוריים ומוצגים כפי שהם.</li>
+      <li>אין באמור ייעוץ מס, ייעוץ מכס או ייעוץ משפטי, ואין להסתמך עליו לצורך קבלת החלטות.</li>
+      <li>המס בפועל נקבע על ידי המכס בלבד, לפי הסיווג המדויק של הפריט. סיווג שונה עשוי להוביל
+          לשיעור מס שונה מזה המוצג כאן.</li>
+      <li>החישוב מתבצע לפי שווי ההזמנה שהוזן על ידכם. המכס עשוי לקבוע שווי אחר, ולכלול בו גם
+          הוצאות הובלה וביטוח.</li>
+      <li>המכס מחשב לפי שער המכס שלו, שעשוי להיות שונה מהשער היציג של בנק ישראל המשמש כאן.</li>
+      <li>המחשבון אינו בודק מגבלות כמות, איסורי יבוא או דרישות רישוי ותקינה (למשל טבק, אלכוהול,
+          תרופות, ציוד אלחוטי).</li>
+      <li>ייתכנו טעויות, שגיאות חישוב או אי-דיוקים בנתונים ובהצגתם. ט.ל.ח — טעות לעולם חוזרת.</li>
+      <li>השימוש במחשבון הוא באחריות המשתמש בלבד. לא תחול על מפעילי המחשבון או על מי מטעמם
+          אחריות לכל נזק, הפסד או הוצאה, ישירים או עקיפים, שייגרמו כתוצאה מהשימוש בו או
+          מהסתמכות על המידע המוצג בו.</li>
+      <li>עצם השימוש במחשבון מהווה הסכמה לתנאים אלה.</li>
+    </ul>
+  </section>
 </div>
 
 <!-- EMBEDDED-DATA:START -->
@@ -283,7 +316,7 @@
   const FIELDS = {
     productlevel1:"l1", productlevel2:"l2", productlevel3:"l3",
     category1taxes1:"t1", category1taxes2:"t2", category1taxes3:"t3", category1taxes4:"t4",
-    specialremarkforpassengerterminal:"note"
+    specialremarkforpassengerterminal:"note", keywords:"kw"
   };
   const keyNorm = k => String(k).toLowerCase().replace(/[^a-z0-9]/g, "");
 
@@ -397,7 +430,6 @@
     { id:"cig",   re:/(?:ל\s*-?\s*)?(?:אלף|1[\s,]?000)\s*סיגריות|סיגריות/ , label:"אלף סיגריות" },
     { id:"kunit", re:/(?:ל\s*-?\s*)?(?:אלף|1[\s,]?000)\s*(?:יחידות|יח')/ , label:"אלף יחידות" },
     { id:"ml",    re:/מיליליטר|מ"ל/ , label:'מ"ל' },
-    { id:"lpa",   re:/ליטר\s*(?:אלכוהול|כוהל)/ , label:"ליטר אלכוהול טהור" },
     { id:"kg",    re:/ק"ג|קילוגרם|קילו/ , label:'ק"ג' },
     { id:"liter", re:/ליטר/ , label:"ליטר" },
     { id:"unit",  re:/לכל\s*אחד|ליחיד(?:ה|ות)|לפריט|ליח'/ , label:"יחידה" }
@@ -407,7 +439,6 @@
     cig:   "הזינו כמות באלפי סיגריות (200 סיגריות = 0.2)",
     kunit: "הזינו כמות באלפי יחידות (200 יחידות = 0.2)",
     ml:    "הזינו את הנפח במיליליטרים",
-    lpa:   "ליטרים של אלכוהול טהור: נפח × אחוז האלכוהול (בקבוק 0.75 ליטר של 40% = 0.3)",
     kg:    'הזינו את המשקל בק"ג',
     liter: "הזינו את כמות הליטרים הכוללת",
     unit:  "הזינו את מספר הפריטים"
@@ -868,19 +899,28 @@
 
   /* ============================== חיפוש מהיר ============================== */
 
+  // מנרמל לחיפוש: בלי גרשיים, מקפים ורווחים כפולים
+  const searchNorm = s => String(s || "").toLowerCase().replace(/["'\-.,]/g, "").replace(/\s+/g, " ").trim();
+
+  // מחפש בשם המוצר, בקטגוריות, וגם ב-Keywords שמגיעים מרשות המסים
+  // (כך ש"אייפון" ימצא "טלפון סלולרי"). התאמה בשם מדורגת לפני התאמה במילות מפתח.
   function searchProducts(q){
-    const out = [];
-    const needle = q.trim();
-    if (needle.length < 2) return out;
+    const needle = searchNorm(q);
+    if (needle.length < 2) return [];
+    const byName = [], byKeyword = [];
     for (const [l1, m1] of TREE){
       for (const [l2, m2] of m1){
-        for (const [l3] of m2){
-          const hay = l1 + " " + l2 + " " + l3;
-          if (hay.indexOf(needle) !== -1){ out.push({l1, l2, l3}); if (out.length >= 60) return out; }
+        for (const [l3, rec] of m2){
+          if (searchNorm(l1 + " " + l2 + " " + l3).indexOf(needle) !== -1){
+            byName.push({l1, l2, l3});
+          }else if (rec && rec.kw && searchNorm(rec.kw).indexOf(needle) !== -1){
+            byKeyword.push({l1, l2, l3});
+          }
+          if (byName.length + byKeyword.length >= 60) return byName.concat(byKeyword);
         }
       }
     }
-    return out;
+    return byName.concat(byKeyword);
   }
 
   $("search").addEventListener("input", () => {

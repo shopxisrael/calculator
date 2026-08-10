@@ -31,11 +31,11 @@ const RATE_URLS = [
   "https://boi.org.il/PublicApi/GetExchangeRates?asJson=true"
 ];
 
-const COLS = ["l1", "l2", "l3", "t1", "t2", "t3", "t4", "note"];
+const COLS = ["l1", "l2", "l3", "t1", "t2", "t3", "t4", "note", "kw"];
 const FIELDS = {
   productlevel1:"l1", productlevel2:"l2", productlevel3:"l3",
   category1taxes1:"t1", category1taxes2:"t2", category1taxes3:"t3", category1taxes4:"t4",
-  specialremarkforpassengerterminal:"note"
+  specialremarkforpassengerterminal:"note", keywords:"kw"
 };
 
 const warn = m => console.log("::warning::" + m);
