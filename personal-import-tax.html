@@ -263,7 +263,7 @@
              או <strong>"אל"י"</strong> (אבל לא יותר — נלקח הסכום הנמוך). פירוט החישוב המלא מוצג בכל תוצאה.</p>
           <p><strong>משלוח וביטוח:</strong> ערך המשלוח למכס (CIF) הוא שווי המוצר בתוספת ההובלה והביטוח.
              בהזמנה עד 75$ ערך החבילה אינו כולל משלוח וביטוח; מעל 75$ הם נחשבים חלק מהשווי לצורך חישוב המס.</p>
-          <p><strong>אגרות:</strong> נוספות לפי ערך המשלוח למכס — <strong>אגרת מחשב</strong> 21 ₪ מעל 100$
+          <p><strong>אגרות:</strong> נקבעות לפי שווי המוצר — <strong>אגרת מחשב</strong> 21 ₪ מעל 100$
              ועד 1,000$, ו-42 ₪ מעל 1,000$; <strong>אגרת ביטחון</strong> 49 ₪ מעל 500$.</p>
         </div>
       </details>
@@ -1039,7 +1039,7 @@
 
   /* ============================== חישוב המס ============================== */
 
-  // אגרות המכס, לפי ערך המשלוח למכס (CIF) בדולר.
+  // אגרות המכס, לפי שווי המוצר בדולר (ולא לפי ערך המשלוח למכס).
   // אגרת מחשב: מעל 100$ ועד 1,000$ — 21 ₪; מעל 1,000$ — 42 ₪.
   function computerFee(usd){ return usd > 1000 ? 42 : usd > 100 ? 21 : 0; }
   // אגרת ביטחון: מעל 500$ — 49 ₪.
@@ -1157,9 +1157,9 @@
     const best = acc;
     const tax = amount > 0 ? best.value : 0;
 
-    // אגרות המכס — לפי ערך המשלוח למכס (CIF)
-    const feeComputer = amount > 0 ? computerFee(cifUSD) : 0;
-    const feeSecurity = amount > 0 ? securityFee(cifUSD) : 0;
+    // אגרות המכס — לפי שווי המוצר, ללא משלוח וביטוח
+    const feeComputer = amount > 0 ? computerFee(goodsUSD) : 0;
+    const feeSecurity = amount > 0 ? securityFee(goodsUSD) : 0;
     const fees = feeComputer + feeSecurity;
     const total = tax + fees;
 
