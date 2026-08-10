@@ -37,6 +37,7 @@
   }
   header.hero h1{margin:0 0 6px;font-size:26px;letter-spacing:-.02em}
   header.hero p{margin:0;opacity:.9;font-size:15px}
+  header.hero .updated{margin-top:10px;font-size:13px;opacity:.85}
   .card{
     background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
     padding:20px;margin-top:18px;box-shadow:var(--shadow);
@@ -64,7 +65,6 @@
   button:hover{filter:brightness(.96)}
   .btn-primary{background:var(--brand);color:#fff}
   .btn-ghost{background:#fff;border-color:var(--line);color:#344054}
-  .btn-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
   .status{display:flex;align-items:center;gap:10px;font-size:13.5px;padding:10px 12px;border-radius:10px;
     background:var(--brand-soft);color:var(--brand-dark);border:1px solid #d3e2ff}
   .status.err{background:var(--bad-soft);color:var(--bad);border-color:#fdd9d5}
@@ -105,8 +105,6 @@
   .rates-main{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0}
   .rates b{color:var(--ink);font-variant-numeric:tabular-nums}
   .rates .sep{color:#98a2b3}
-  .link-btn{background:none;border:0;color:var(--brand);font-size:13px;padding:2px 4px;text-decoration:underline}
-  .fallback textarea{min-height:110px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px}
   a{color:var(--brand)}
   .badge-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
 </style>
@@ -116,33 +114,13 @@
 
   <header class="hero">
     <h1>מחשבון מסי יבוא אישי</h1>
-    <p>מע"מ + מכס + מס קנייה — לפי טבלת המסים המרוכזת של רשות המסים (שער עולמי)</p>
+    <p>מע"מ + מכס + מס קנייה — לפי טבלת המסים של רשות המסים ושערי בנק ישראל</p>
+    <p class="updated hidden" id="updatedLine"></p>
   </header>
 
   <!-- טעינת נתונים -->
   <section class="card" id="loaderCard">
-    <div id="status" class="status"><span class="spinner"></span><span id="statusText">טוען את טבלת המסים…</span></div>
-    <div id="fallback" class="fallback hidden">
-      <p class="hint" style="margin-top:14px">
-        לא ניתן היה למשוך את הנתונים אוטומטית (חסימת CORS או רשת). אפשר לטעון ידנית:
-        פתחו את <a id="apiLink" href="#" target="_blank" rel="noopener">כתובת ה-API</a>,
-        שמרו את הקובץ והעלו אותו כאן — או הדביקו את תוכן ה-JSON.
-      </p>
-      <div class="grid cols-2" style="margin-top:10px">
-        <div class="field">
-          <label for="fileInput">העלאת קובץ JSON</label>
-          <input type="file" id="fileInput" accept=".json,application/json">
-        </div>
-        <div class="field">
-          <label for="pasteInput">הדבקת JSON</label>
-          <textarea id="pasteInput" placeholder='{"data":[…]}'></textarea>
-        </div>
-      </div>
-      <div class="btn-row">
-        <button class="btn-primary" id="loadPasteBtn">טען מהטקסט</button>
-        <button class="btn-ghost" id="retryBtn">נסה שוב מהאינטרנט</button>
-      </div>
-    </div>
+    <div id="status" class="status"><span class="spinner"></span><span id="statusText">טוען…</span></div>
   </section>
 
   <!-- בחירת מוצר -->
@@ -195,10 +173,9 @@
 
     <div class="rates" id="ratesBar">
       <div class="rates-main">
-        <span class="spinner" id="ratesSpinner"></span>
-        <span id="ratesText">טוען שערי חליפין מבנק ישראל…</span>
+        <span class="spinner hidden" id="ratesSpinner"></span>
+        <span id="ratesText"></span>
       </div>
-      <button type="button" class="link-btn" id="ratesRefresh">רענון שערים</button>
     </div>
 
     <div class="grid cols-3 hidden" id="extraRow" style="margin-top:14px">
@@ -275,7 +252,6 @@
   const VAT_RATE = 18;
 
   const $ = id => document.getElementById(id);
-  document.getElementById("apiLink").href = API_URL;
 
   /* ============================== עזרי טקסט ============================== */
 
@@ -593,73 +569,45 @@
     return { records, rates: o.rates || null, updated: o.updated || "" };
   }
 
-  function useRecords(recs, msg, state){
-    const old = $("loaderCard").querySelector("#refreshBtn");
-    if (old) old.remove();
+  function useRecords(recs){
     RECORDS = recs;
     TREE = buildTree(recs);
     fillSelect($("l1"), [...TREE.keys()].sort(heSort));
     $("pickCard").classList.remove("hidden");
     $("amountCard").classList.remove("hidden");
-    $("fallback").classList.add("hidden");
-    setStatus(state || "ok", msg + " — " + nfNum.format(recs.length) + " רשומות, " + TREE.size + " קטגוריות ראשיות.", false);
-    const btn = document.createElement("button");
-    btn.id = "refreshBtn";
-    btn.className = "btn-ghost";
-    btn.style.cssText = "margin-top:12px;padding:6px 12px;font-size:13px";
-    btn.textContent = "נסה למשוך נתונים עדכניים";
-    btn.onclick = () => { try{ localStorage.removeItem(CACHE_KEY); }catch(e){} boot(true); };
-    $("status").after(btn);
+    // במצב תקין אין מה להציג למשתמש מלבד תאריך העדכון שבכותרת
+    $("loaderCard").classList.add("hidden");
+    showUpdated();
   }
 
-  function embeddedLabel(){
-    return "נתונים מוטמעים בדף" + (EMBEDDED.updated ? " (עודכן: " + EMBEDDED.updated + ")" : "");
+  // "2026-08-10" -> "10.08.2026"
+  function fmtDate(iso){
+    const m = String(iso || "").match(/^(\d{4})-(\d{2})-(\d{2})/);
+    return m ? m[3] + "." + m[2] + "." + m[1] : String(iso || "");
   }
 
-  async function boot(force){
-    const old = $("loaderCard").querySelector("#refreshBtn");
-    if (old) old.remove();
+  function showUpdated(){
+    const d = EMBEDDED && EMBEDDED.updated;
+    if (!d) return;
+    $("updatedLine").textContent = "המסים ושערי החליפין עודכנו בתאריך " + fmtDate(d);
+    $("updatedLine").classList.remove("hidden");
+  }
+
+  async function boot(){
     if (!EMBEDDED) EMBEDDED = readEmbedded();
+    // הנתונים המוטמעים בדף הם מקור האמת — אין צורך בשום קריאת רשת
+    if (EMBEDDED){ useRecords(EMBEDDED.records); return; }
 
-    if (!force){
-      // הנתונים המוטמעים הם מקור האמת — אין צורך בשום קריאת רשת
-      if (EMBEDDED){ useRecords(EMBEDDED.records, embeddedLabel()); return; }
-      const cached = loadCache();
-      if (cached){ useRecords(cached, "נטען מהמטמון המקומי"); return; }
-    }
+    const cached = loadCache();
+    if (cached){ useRecords(cached); return; }
     try{
       const recs = await fetchData();
       saveCache(recs);
-      useRecords(recs, "הנתונים נטענו ישירות מרשות המסים");
+      useRecords(recs);
     }catch(e){
-      if (EMBEDDED){
-        useRecords(EMBEDDED.records, "משיכה חיה נכשלה (חסימת CORS) — " + embeddedLabel(), "err");
-      }else{
-        setStatus("err", "טעינה אוטומטית נכשלה (" + e.message + ").", false);
-        $("fallback").classList.remove("hidden");
-      }
+      setStatus("err", "לא ניתן לטעון את נתוני המסים כרגע. נסו שוב מאוחר יותר.", false);
     }
   }
-
-  function loadFromText(txt){
-    try{
-      const recs = extractRecords(JSON.parse(txt));
-      if (!recs.length) throw new Error("לא נמצאו רשומות מתאימות בקובץ");
-      saveCache(recs);
-      useRecords(recs, "הנתונים נטענו ידנית");
-    }catch(e){
-      setStatus("err", "שגיאה בקריאת ה-JSON: " + (e.message || e), false);
-    }
-  }
-
-  $("retryBtn").onclick = () => boot(true);
-  $("loadPasteBtn").onclick = () => loadFromText($("pasteInput").value.trim());
-  $("fileInput").onchange = e => {
-    const f = e.target.files[0]; if (!f) return;
-    const fr = new FileReader();
-    fr.onload = () => loadFromText(String(fr.result));
-    fr.readAsText(f);
-  };
 
   /* ==================== שערי חליפין יציגים — בנק ישראל ==================== */
   // מקור: EDGE של בנק ישראל (SDMX). מנסה כמה נקודות קצה, ואם כולן נכשלות
@@ -805,9 +753,8 @@
       .filter(c => RATES[c] && RATES[c].rate)
       .map(c => "1" + CURRENCIES[c].sign + " = <b>" + nfNum4.format(RATES[c].rate) + " ₪</b>");
     const head = state === "error"
-      ? "לא הצלחנו למשוך שערים מבנק ישראל — נעשה שימוש בשערי ברירת מחדל (ניתן לעדכן ידנית): "
-      : "שער יציג, בנק ישראל" + (RATES_DATE ? " (" + RATES_DATE + ")" : "") +
-        (RATES_SOURCE === "מטמון" ? " · מהמטמון" : "") + ": ";
+      ? "שערי חליפין משוערים — מומלץ לעדכן ידנית: "
+      : "שער יציג של בנק ישראל" + (RATES_DATE ? ", " + fmtDate(RATES_DATE) : "") + ": ";
     txt.innerHTML = esc(head) + parts.join(' <span class="sep">·</span> ');
   }
 
@@ -825,24 +772,23 @@
     return out;
   }
 
-  async function loadRates(force){
-    if (!force){
-      const emb = embeddedRates();
-      if (emb){
-        RATES = Object.assign({}, DEFAULT_RATES, emb);
-        RATES_DATE = (EMBEDDED.rates && EMBEDDED.rates.date) || "";
-        RATES_SOURCE = "בנק ישראל";
-        applyRates(); renderRates("ok"); calc();
-        return;
-      }
-      const cached = loadRatesCache();
-      if (cached){
-        RATES = Object.assign({}, DEFAULT_RATES, cached.rates);
-        RATES_DATE = cached.date || "";
-        RATES_SOURCE = "מטמון";
-        applyRates(); renderRates("ok"); calc();
-        return;
-      }
+  async function loadRates(){
+    // שערים שהוטמעו בדף — ללא קריאת רשת
+    const emb = embeddedRates();
+    if (emb){
+      RATES = Object.assign({}, DEFAULT_RATES, emb);
+      RATES_DATE = (EMBEDDED.rates && EMBEDDED.rates.date) || "";
+      RATES_SOURCE = "בנק ישראל";
+      applyRates(); renderRates("ok"); calc();
+      return;
+    }
+    const cached = loadRatesCache();
+    if (cached){
+      RATES = Object.assign({}, DEFAULT_RATES, cached.rates);
+      RATES_DATE = cached.date || "";
+      RATES_SOURCE = "בנק ישראל";
+      applyRates(); renderRates("ok"); calc();
+      return;
     }
     renderRates("loading");
     let found = {};
@@ -881,8 +827,6 @@
   }
 
   const round4 = n => Math.round(n * 10000) / 10000;
-
-  $("ratesRefresh").onclick = () => { try{ localStorage.removeItem(RATES_KEY); }catch(e){} loadRates(true); };
 
   /* ============================== ממשק בחירה ============================== */
 
@@ -1122,7 +1066,7 @@
   function rateLine(cur, selRate, usdRate){
     const src = isManualRate(cur, selRate, usdRate) ? "שער שהוזן ידנית"
       : (RATES_SOURCE === "בנק ישראל" || RATES_SOURCE === "מטמון")
-        ? "שער יציג בנק ישראל" + (RATES_DATE ? " " + RATES_DATE : "")
+        ? "שער יציג בנק ישראל" + (RATES_DATE ? " " + fmtDate(RATES_DATE) : "")
         : "שער ברירת מחדל — מומלץ לעדכן";
     const parts = [];
     if (cur !== "ILS") parts.push("1" + CURRENCIES[cur].sign + " = " + nfNum4.format(selRate) + " ₪");
@@ -1138,8 +1082,8 @@
 
   EMBEDDED = readEmbedded();
   applyRates();
-  boot(false);
-  loadRates(false);
+  boot();
+  loadRates();
 })();
 </script>
 </body>

@@ -143,6 +143,7 @@ function findArrayOfArrays(json){
 function mapRecords(rows){
   if (!rows || !rows.length || Array.isArray(rows[0])) return [];
   const out = [];
+  const noTax = [];
   let dropped = 0;
   for (const r of rows){
     const rec = {};
@@ -151,8 +152,13 @@ function mapRecords(rows){
       if (c) rec[c] = clean(v);
     }
     if (rec.l1) out.push(rec); else dropped++;
+    if (rec.l1 && !rec.t1 && !rec.t2 && !rec.t3 && !rec.t4 && noTax.length < 2) noTax.push(r);
   }
-  if (rows.length) console.log(`  שורות גולמיות: ${rows.length} | נשמרו: ${out.length} | ללא קטגוריה ראשית: ${dropped}`);
+  if (rows.length){
+    console.log(`  שורות גולמיות: ${rows.length} | נשמרו: ${out.length} | ללא קטגוריה ראשית: ${dropped}`);
+    // אבחון: אילו שדות בכלל קיימים בשורות שאין להן נתוני מס בעמודות Category1
+    if (noTax.length) console.log("  דוגמה לשורה ללא נתוני מס:\n    " + JSON.stringify(noTax[0]));
+  }
   return out;
 }
 
