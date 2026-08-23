@@ -250,6 +250,29 @@ function parseLegacyRates(json){
   return out;
 }
 
+// אבחון זמני: מדפיס את תאריכי התצפיות האחרונות של שער הדולר,
+// כדי לראות באילו ימים בנק ישראל מפרסם שער יציג.
+async function probeRecentRates(){
+  const json = await fetchJson(EDGE + "RER_USD_ILS?format=sdmx-json&lastNObservations=8", 1);
+  if (!json) return;
+  const msg = (json && json.data && (json.data.dataSets || json.data.structure || json.data.structures)) ? json.data : json;
+  const structure = msg.structure || (Array.isArray(msg.structures) && msg.structures[0]) || json.structure;
+  const times = ((structure.dimensions && structure.dimensions.observation) || [])[0];
+  const vals = (times && times.values) || [];
+  const out = [];
+  for (const ds of [].concat(msg.dataSets || [])){
+    for (const s of Object.values(ds.series || {})){
+      for (const [k, cell] of Object.entries(s.observations || {})){
+        const d = vals[Number(k)];
+        const iso = d ? String(d.id || d.name || "") : "?";
+        const day = ["ראשון","שני","שלישי","רביעי","חמישי","שישי","שבת"][new Date(iso + "T00:00:00Z").getUTCDay()] || "?";
+        out.push(`${iso} (${day}) = ${Array.isArray(cell) ? cell[0] : cell}`);
+      }
+    }
+  }
+  console.log("  תצפיות אחרונות של שער הדולר:\n    " + out.join("\n    "));
+}
+
 async function fetchRates(){
   const found = {};
   for (const url of RATE_URLS){
@@ -315,6 +338,7 @@ async function main(){
   }
 
   console.log("מושך שערים יציגים מבנק ישראל…");
+  await probeRecentRates();
   const found = await fetchRates();
   let rates = prev.rates || null;
   if (found.USD){
