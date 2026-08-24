@@ -4,296 +4,418 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>מחשבון מסי יבוא אישי</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;800&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg:#eef1f8;
-    --card:#ffffff;
-    --ink:#0f172a;
-    --muted:#64748b;
-    --line:#e2e8f0;
-    --brand:#1f5fd6;
-    --brand-dark:#16408f;
-    --brand-soft:#eaf1ff;
-    --good:#0b7a4b;
-    --warn-soft:#fff7ed;
-    --warn-line:#fed7aa;
-    --warn-ink:#7c2d12;
-    --bad:#b42318;
-    --bad-soft:#fee4e2;
-    --r:14px;
-    --shadow:0 1px 2px rgba(15,23,42,.04), 0 8px 24px -12px rgba(15,23,42,.15);
+    --bg:#eef1f8; --card:#ffffff; --ink:#0f172a; --ink2:#334155;
+    --muted:#64748b; --muted2:#94a3b8;
+    --line:#e2e8f0; --line2:#f1f5f9; --line3:#cbd5e1; --surface2:#f8fafc;
+    --brand:#1f5fd6; --brand-dark:#16408f; --brand-soft:#eaf1ff; --brand-light:#4b86ee;
+    --good:#0b7a4b; --good2:#12a06a; --seg:#c7d2e6;
+    --warn-soft:#fff7ed; --warn-line:#fed7aa; --warn-ink:#7c2d12; --warn-dot:#fbbf24;
+    --bad:#b42318; --bad-soft:#fee4e2; --bad-line:#fdd9d5;
+    --sh-card:0 1px 2px rgba(15,23,42,.04);
+    --sh-float:0 1px 2px rgba(15,23,42,.04),0 8px 24px -12px rgba(15,23,42,.15);
+    --sh-result:0 1px 2px rgba(15,23,42,.04),0 18px 40px -26px rgba(15,23,42,.3);
+    --ring:0 0 0 3px rgba(31,95,214,.14);
   }
   *{box-sizing:border-box}
   html,body{margin:0;padding:0}
   body{
-    font-family:"Segoe UI",Rubik,Arial,"Noto Sans Hebrew",sans-serif;
-    background:var(--bg);color:var(--ink);line-height:1.55;font-size:15px;
-    -webkit-font-smoothing:antialiased;
+    background:var(--bg);color:var(--ink);
+    font-family:Heebo,system-ui,"Noto Sans Hebrew",Arial,sans-serif;
+    font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased;
+    font-variant-numeric:tabular-nums;
   }
+  button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+  input,select{font:inherit;color:inherit}
+  .num{font-variant-numeric:tabular-nums}
+  .hidden{display:none!important}
   .wrap{max-width:1080px;margin:0 auto;padding:18px 14px 40px}
 
   /* ---------- כותרת ---------- */
-  .hero{
-    display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;
-    background:linear-gradient(120deg,var(--brand-dark),var(--brand));
-    color:#fff;border-radius:var(--r);padding:16px 20px;box-shadow:var(--shadow);
-  }
-  .hero h1{margin:0;font-size:21px;letter-spacing:-.02em}
-  .hero p{margin:2px 0 0;opacity:.88;font-size:13px}
-  .stamp{
-    display:inline-flex;align-items:center;gap:7px;background:rgba(255,255,255,.16);
-    border:1px solid rgba(255,255,255,.28);border-radius:999px;padding:6px 13px;
-    font-size:13px;font-weight:600;white-space:nowrap;backdrop-filter:blur(2px);
-  }
-  .stamp .dot{width:8px;height:8px;border-radius:50%;background:#4ade80;flex:0 0 auto}
-  .stamp.fresh .dot{box-shadow:0 0 0 0 rgba(74,222,128,.7);animation:pulse 2s infinite}
-  .stamp.stale .dot{background:#fbbf24}
-  @keyframes pulse{70%{box-shadow:0 0 0 7px rgba(74,222,128,0)}100%{box-shadow:0 0 0 0 rgba(74,222,128,0)}}
+  .topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:0 4px 16px}
+  .brand{display:flex;align-items:center;gap:11px;min-width:0}
+  .brand .rule{width:4px;height:26px;border-radius:2px;background:var(--brand);flex:0 0 auto}
+  .brand h1{margin:0;font-size:20px;font-weight:800;letter-spacing:-.02em;line-height:1.2}
+  .brand p{margin:1px 0 0;font-size:13px;font-weight:400;color:var(--muted)}
+  .pill{display:flex;align-items:center;gap:7px;background:var(--card);border:1px solid var(--line);
+    border-radius:999px;padding:6px 13px;font-size:13px;color:#475569;white-space:nowrap;flex:0 0 auto}
+  .pill .dot{width:7px;height:7px;border-radius:50%;background:var(--good2);flex:0 0 auto}
+  .pill.stale .dot{background:var(--warn-dot)}
+  .pill.bad .dot{background:var(--bad)}
 
-  /* ---------- פריסה ---------- */
-  /* במובייל סדר ה-DOM קובע: מה הזמנתם ← המס לתשלום ← ההסברים.
-     בדסקטופ ההסברים חוזרים אל מתחת לטופס, והתוצאה יושבת בעמודה הצדדית. */
-  .layout{display:grid;gap:14px;margin-top:14px;align-items:start}
-  .col{display:grid;gap:14px;align-content:start;min-width:0}
+  /* ---------- שלד כרטיס ---------- */
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;
+    box-shadow:var(--sh-card);min-width:0}
+  .eyebrow{font-size:11px;font-weight:600;letter-spacing:.12em;color:var(--muted);margin-bottom:10px}
+  .status{background:var(--bad-soft);border:1px solid var(--bad-line);color:var(--bad);
+    border-radius:11px;padding:11px 14px;font-size:13px;display:flex;align-items:center;gap:9px;
+    margin-bottom:16px}
+
+  .layout{display:grid;gap:16px;align-items:start}
+  .col{display:grid;gap:16px;align-content:start;min-width:0}
   @media(min-width:900px){
-    .layout{grid-template-columns:1fr 344px}
+    .layout{grid-template-columns:1fr 396px}
     .c-main{grid-column:1;grid-row:1}
-    .c-extra{grid-column:1;grid-row:2}
-    .c-side{grid-column:2;grid-row:1 / span 2;position:sticky;top:14px;align-self:start}
+    .c-side{grid-column:2;grid-row:1;position:sticky;top:14px;align-self:start}
   }
-
-  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);
-    padding:16px;box-shadow:var(--shadow)}
-  .card > h2{margin:0 0 12px;font-size:13px;font-weight:700;color:var(--muted);
-    letter-spacing:.04em;display:flex;align-items:center;gap:7px}
-  .card > h2::before{content:"";width:3px;height:13px;border-radius:2px;background:var(--brand)}
-
-  label{display:block;font-size:12.5px;font-weight:600;margin:0 0 5px;color:#334155}
-  select,input[type=text],input[type=number]{
-    width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:10px;background:#fff;
-    font:inherit;font-size:14px;color:inherit;transition:border-color .15s,box-shadow .15s;
-  }
-  select:focus,input:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 3px rgba(31,95,214,.14)}
-  select:disabled,input:disabled{background:#f8fafc;color:#94a3b8}
-  .grid{display:grid;gap:11px}
-  @media(min-width:620px){ .cols-2{grid-template-columns:1fr 1fr} .cols-3{grid-template-columns:1fr 1fr 1fr} }
-  .field{min-width:0}
-  .hint{font-size:11.5px;color:var(--muted);margin-top:4px;line-height:1.45}
-  .opt{font-weight:400;color:var(--muted);font-size:11px}
-  .check{display:flex;align-items:center;gap:8px;margin:12px 0 0;font-size:13px;font-weight:600;
-    color:#334155;cursor:pointer;user-select:none}
-  .check input{width:16px;height:16px;accent-color:var(--brand);cursor:pointer;flex:0 0 auto}
-  #extrasRow{margin-top:10px}
-  table.kv tr.sum td{border-top:1px solid var(--line);padding-top:8px}
-  table.kv tr.fee td{color:var(--muted);font-weight:500}
-  table.kv tr.fee td:last-child{color:var(--ink)}
-  .hidden{display:none!important}
 
   /* ---------- חיפוש ---------- */
-  .search-wrap{position:relative;margin-bottom:12px}
-  .results{position:absolute;z-index:30;inset-inline:0;top:calc(100% + 5px);background:#fff;
-    border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);max-height:270px;
+  .search-wrap{position:relative}
+  .searchbox{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:12px;
+    padding:13px 15px;min-height:52px;transition:border-color .15s ease,box-shadow .15s ease}
+  .searchbox:focus-within,.searchbox.filled{border-color:var(--brand);box-shadow:var(--ring)}
+  .searchbox svg{flex:0 0 auto}
+  .searchbox input{flex:1;min-width:0;border:0;outline:none;background:none;font-size:17px;font-weight:600;padding:0}
+  .searchbox input::placeholder{font-weight:400;color:var(--muted2)}
+  .crumb{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    max-width:46%;flex:0 1 auto;min-width:0}
+  .clear{font-size:19px;color:var(--muted2);line-height:1;padding:0 2px;flex:0 0 auto}
+  .clear:hover{color:var(--ink2)}
+
+  .browse-line{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:13px;color:var(--muted);flex-wrap:wrap}
+  .browse-line .link{color:var(--brand);font-weight:600}
+  .browse-line .chev{color:var(--brand);transition:transform .18s ease;display:inline-block}
+  .browse-line.open .chev{transform:rotate(90deg)}
+
+  .results{position:absolute;z-index:30;inset-inline:0;top:calc(100% + 5px);background:var(--card);
+    border:1px solid var(--line);border-radius:12px;box-shadow:var(--sh-float);max-height:270px;
     overflow:auto;display:none}
   .results.open{display:block}
-  .results button{display:block;width:100%;text-align:start;background:none;border:0;
-    border-bottom:1px solid #f1f5f9;padding:8px 12px;font:inherit;cursor:pointer}
-  .results button:hover{background:var(--brand-soft)}
-  .results .r1{font-size:13.5px;font-weight:600}
-  .results .r2{font-size:11.5px;color:var(--muted)}
+  .results button{display:block;width:100%;text-align:start;padding:8px 12px;border-bottom:1px solid var(--line2);
+    transition:background .15s ease}
+  .results button:last-child{border-bottom:0}
+  .results button:hover,.results button.on{background:var(--brand-soft)}
+  .results .r1{font-size:15px;font-weight:600}
+  .results .r2{font-size:13px;color:var(--muted)}
+  .results .empty{padding:8px 12px;font-size:13px;color:var(--muted)}
 
-  /* ---------- שערים ---------- */
-  .rates{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:11px;
-    padding:8px 11px;border:1px solid var(--line);border-radius:10px;background:#f8fafc;
-    font-size:12px;color:var(--muted)}
-  .rates.err{background:var(--warn-soft);border-color:var(--warn-line);color:var(--warn-ink)}
-  .rates b{color:var(--ink);font-variant-numeric:tabular-nums}
-  .rates .sep{color:#cbd5e1}
+  /* ---------- בורר קטגוריות ---------- */
+  .browser{margin-top:14px;border:1px solid var(--line);border-radius:12px;overflow:hidden;
+    display:grid;grid-template-columns:1fr 1fr 1fr}
+  .bcol{min-width:0}
+  .bcol:not(:last-child){border-inline-end:1px solid var(--line)}
+  .bhead{padding:9px 14px;background:var(--surface2);border-bottom:1px solid var(--line);
+    font-size:11px;font-weight:600;letter-spacing:.12em;color:var(--muted);
+    display:flex;align-items:center;gap:8px}
+  .bhead .back{display:none;color:var(--brand);font-size:15px;line-height:1}
+  .blist{padding:6px 0;max-height:212px;overflow-y:auto}
+  .blist button{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;
+    text-align:start;padding:7px 14px;font-size:15px;color:var(--ink2);transition:background .15s ease}
+  .blist button:hover{background:var(--surface2)}
+  .blist button.on{font-weight:600;color:var(--brand-dark);background:var(--brand-soft)}
+  .blist button.on .mark{color:var(--brand)}
+  .blist button.leaf.on{color:#fff;background:var(--brand)}
+  .blist button.leaf.on .mark{color:#fff}
+  .blist .none{padding:7px 14px;font-size:15px;color:var(--muted2)}
+
+  /* ---------- סכום ---------- */
+  .amount-row{display:flex;gap:12px;align-items:stretch;flex-wrap:wrap}
+  .amount-group{flex:1;min-width:220px;display:flex;border:1px solid var(--line);border-radius:12px;
+    overflow:hidden;transition:border-color .15s ease,box-shadow .15s ease}
+  .amount-group:focus-within{border-color:var(--brand);box-shadow:var(--ring)}
+  .amount-group input{flex:1;min-width:0;border:0;outline:none;background:none;padding:12px 15px;
+    font-size:24px;font-weight:600}
+  .cur{position:relative;display:flex;align-items:center;background:var(--surface2);
+    border-inline-start:1px solid var(--line)}
+  .cur select{appearance:none;-webkit-appearance:none;border:0;outline:none;background:none;
+    padding:0 34px 0 15px;height:100%;font-size:15px;font-weight:600;color:var(--ink2);cursor:pointer}
+  .cur .caret{position:absolute;inset-inline-start:14px;color:var(--muted2);font-size:12px;pointer-events:none}
+  .ship{display:flex;align-items:center;gap:9px;padding:0 16px;border:1px dashed var(--line3);
+    border-radius:12px;font-size:15px;color:#475569;cursor:pointer;user-select:none;min-height:48px;
+    transition:border-color .15s ease,background .15s ease}
+  .ship input{position:absolute;opacity:0;pointer-events:none}
+  .ship .box{width:17px;height:17px;border-radius:5px;border:1.5px solid var(--line3);flex:0 0 auto;
+    display:flex;align-items:center;justify-content:center;font-size:12px;color:#fff;line-height:1}
+  .ship.on{border:1px solid var(--brand);color:var(--ink2)}
+  .ship.on .box{background:var(--brand);border-color:var(--brand)}
+  .grid2{display:grid;gap:11px;margin-top:13px}
+  @media(min-width:560px){ .grid2{grid-template-columns:1fr 1fr} }
+  .fld label{display:block;font-size:13px;font-weight:600;color:var(--ink2);margin-bottom:5px}
+  .fld input{width:100%;border:1px solid var(--line);border-radius:12px;padding:10px 14px;font-size:15px;
+    outline:none;transition:border-color .15s ease,box-shadow .15s ease;background:#fff}
+  .fld input:focus{border-color:var(--brand);box-shadow:var(--ring)}
+  .fld .hint{font-size:13px;color:var(--muted);margin-top:4px;line-height:1.5}
+  .hint{font-size:13px;color:var(--muted);line-height:1.5}
+  .rateline{display:flex;align-items:center;gap:9px;margin-top:13px;font-size:13px;color:var(--muted);flex-wrap:wrap}
+  .rateline b{color:var(--ink)}
+  .rateline .sep{color:var(--line3)}
+  .rateline .link{color:var(--brand);font-weight:600}
+  .rateline.err{background:var(--warn-soft);border:1px solid var(--warn-line);color:var(--warn-ink);
+    border-radius:11px;padding:11px 14px}
   .spinner{width:13px;height:13px;border:2px solid currentColor;border-top-color:transparent;
     border-radius:50%;animation:spin .8s linear infinite;flex:0 0 auto}
   @keyframes spin{to{transform:rotate(360deg)}}
 
-  /* ---------- תוצאה ---------- */
-  .result .hero-num{background:linear-gradient(135deg,#0b7a4b,#12a06a);color:#fff;
-    border-radius:12px;padding:14px 16px;text-align:center}
-  .result.empty .hero-num{background:#f1f5f9;color:var(--muted)}
-  .hero-num .lbl{font-size:12px;opacity:.92}
-  .hero-num .amt{font-size:30px;font-weight:800;letter-spacing:-.02em;line-height:1.15;margin-top:1px;
-    font-variant-numeric:tabular-nums}
-  .hero-num .alt{font-size:12px;opacity:.92;margin-top:1px}
-  .badge-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
-  .chip{display:inline-block;background:var(--brand-soft);color:var(--brand-dark);border-radius:999px;
-    padding:2px 9px;font-size:11.5px;font-weight:600}
-  table.kv{width:100%;border-collapse:collapse;margin-top:11px;font-size:13px}
-  table.kv td{padding:6px 2px;border-bottom:1px solid #f1f5f9;vertical-align:top}
-  table.kv tr:last-child td{border-bottom:0;padding-top:9px;font-size:14px}
-  table.kv td:first-child{color:var(--muted);width:40%;font-weight:500}
-  table.kv td:last-child{font-weight:600;text-align:end}
-  .note{margin-top:11px;background:var(--warn-soft);border:1px solid var(--warn-line);
-    color:var(--warn-ink);border-radius:10px;padding:9px 11px;font-size:12px;white-space:pre-wrap}
-  .note h3{margin:0 0 3px;font-size:12px}
+  /* ---------- מדרגת המס ---------- */
+  .brk-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:18px}
+  .brk-head .cur-band{font-size:13px;color:var(--muted)}
+  .brk-head .cur-band b{color:var(--ink);font-weight:600}
+  .track{position:relative;height:10px;border-radius:999px;background:var(--bg);margin:0 6px}
+  .track .fill{position:absolute;inset-block:0;inset-inline-start:0;border-radius:999px;
+    background:linear-gradient(90deg,var(--brand),var(--brand-light));transition:width .22s ease-out}
+  .track .knob{position:absolute;top:-5px;transform:translateX(50%);width:20px;height:20px;border-radius:50%;
+    background:#fff;border:4px solid var(--brand);box-shadow:0 2px 6px rgba(15,23,42,.2);
+    transition:inset-inline-start .22s ease-out}
+  .track .tick{position:absolute;inset-block:-4px;width:2px;background:var(--line3)}
+  .ticks{display:flex;justify-content:space-between;margin-top:9px;font-size:13px;color:var(--muted)}
+  .next-note{margin-top:16px;background:var(--warn-soft);border:1px solid var(--warn-line);
+    color:var(--warn-ink);border-radius:11px;padding:11px 14px;font-size:13px;line-height:1.6}
 
-  /* ---------- מקופלים ---------- */
-  details.acc{background:var(--card);border:1px solid var(--line);border-radius:var(--r);
-    box-shadow:var(--shadow);overflow:hidden}
-  details.acc > summary{cursor:pointer;list-style:none;padding:12px 16px;font-size:13.5px;
-    font-weight:600;color:#334155;display:flex;align-items:center;gap:8px;user-select:none}
-  details.acc > summary::-webkit-details-marker{display:none}
-  details.acc > summary::before{content:"›";transform:rotate(180deg);transition:transform .18s;
-    color:var(--brand);font-size:17px;line-height:1;font-weight:700}
-  details.acc[open] > summary::before{transform:rotate(270deg)}
-  details.acc > summary:hover{background:#f8fafc}
-  .acc-body{padding:0 16px 14px;font-size:12.5px;color:var(--muted);line-height:1.7}
+  /* ---------- אקורדיונים ---------- */
+  .accs{display:flex;flex-direction:column;gap:9px}
+  details.acc{background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--sh-card)}
+  details.acc>summary{list-style:none;cursor:pointer;padding:14px 16px;display:flex;align-items:center;gap:10px;
+    font-size:15px;font-weight:600;color:var(--ink2);user-select:none}
+  details.acc>summary::-webkit-details-marker{display:none}
+  details.acc>summary::before{content:"＋";color:var(--brand);font-weight:800}
+  details.acc[open]>summary::before{content:"－"}
+  .acc-body{padding:0 16px 14px;font-size:13px;color:var(--muted);line-height:1.7}
   .acc-body p{margin:0 0 8px}
   .acc-body ul{margin:0;padding-inline-start:18px}
   .acc-body li{margin-bottom:5px}
-  .acc-body strong{color:#334155}
-  .formula{background:#f8fafc;border:1px dashed var(--line);border-radius:9px;padding:9px 11px;
-    font-size:11.5px;color:#475569;white-space:pre-wrap;word-break:break-word;line-height:1.6}
+  .acc-body strong{color:var(--ink2)}
 
-  .status{display:flex;align-items:center;gap:9px;font-size:13px;padding:9px 12px;border-radius:10px;
-    background:var(--bad-soft);color:var(--bad);border:1px solid #fdd9d5}
-  .foot{text-align:center;font-size:11.5px;color:var(--muted);margin-top:16px}
+  /* ---------- תוצאה ---------- */
+  .result{box-shadow:var(--sh-result);padding:22px}
+  .sheet-head{display:none}
+  .hero-num{margin-top:14px;border-radius:12px;padding:20px 18px;text-align:center;color:#fff;
+    background:linear-gradient(135deg,var(--good),var(--good2))}
+  .result.empty .hero-num{background:var(--line2);color:var(--muted)}
+  .hero-num .lbl{font-size:13px;opacity:.92}
+  .hero-num .amt{font-size:38px;font-weight:800;letter-spacing:-.03em;line-height:1.1;margin-top:2px}
+  .hero-num .sub{font-size:13px;opacity:.92;margin-top:3px}
+  .chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:14px}
+  .chip{border-radius:999px;padding:3px 11px;font-size:13px;font-weight:600;
+    background:var(--brand-soft);color:var(--brand-dark)}
+  .chip.off{background:var(--line2);color:#475569}
+  .chip.good{background:#e7f7ef;color:var(--good)}
+  .bar-wrap{margin-top:20px}
+  .bar{display:flex;height:14px;border-radius:999px;overflow:hidden;gap:2px}
+  .bar span{transition:flex-grow .22s ease-out}
+  .legend{display:flex;flex-wrap:wrap;gap:12px;margin-top:11px;font-size:13px;color:var(--muted)}
+  .legend i{display:flex;align-items:center;gap:6px;font-style:normal}
+  .legend i::before{content:"";width:9px;height:9px;border-radius:3px;background:var(--sw)}
+  .rows{margin-top:18px;display:flex;flex-direction:column;gap:2px;font-size:15px}
+  .rows .r{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid var(--line2)}
+  .rows .r span{color:var(--muted)}
+  .rows .r b{font-weight:600;text-align:end}
+  .rows .r b.exempt{color:var(--good)}
+  .rows .r.total{border-bottom:0;padding:12px 0 0;font-size:17px}
+  .rows .r.total span{color:var(--ink);font-weight:600}
+  .note{margin-top:16px;background:var(--warn-soft);border:1px solid var(--warn-line);color:var(--warn-ink);
+    border-radius:11px;padding:11px 14px;font-size:13px;white-space:pre-wrap}
+  .note h3{margin:0 0 3px;font-size:13px;font-weight:600}
+  details.calc{margin-top:16px}
+  details.calc>summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;
+    padding:11px 14px;background:var(--surface2);border:1px solid var(--line);border-radius:11px;
+    font-size:13px;font-weight:600;color:var(--ink2)}
+  details.calc>summary::-webkit-details-marker{display:none}
+  details.calc>summary::after{content:"›";color:var(--brand);transition:transform .18s ease}
+  details.calc[open]>summary::after{transform:rotate(90deg)}
+  .formula{margin-top:9px;background:var(--surface2);border:1px dashed var(--line);border-radius:9px;
+    padding:9px 11px;font-size:13px;color:#475569;white-space:pre-wrap;word-break:break-word;line-height:1.6}
+
+  /* ---------- סרגל מובייל ---------- */
+  .mbar{display:none}
+  @media(max-width:899px){
+    .wrap{padding:16px 16px 150px}
+    .card{padding:16px}
+    .brand h1{font-size:17px}
+    .brand p{display:none}
+    .layout{gap:12px}
+    .col{gap:12px}
+    .amount-group input{font-size:22px}
+    .searchbox{min-height:48px}
+    .crumb,#browseHint{display:none}
+    .ship{min-height:48px;width:100%}
+    /* בורר קטגוריות: עמודה אחת בכל פעם, עם חזרה */
+    .browser{grid-template-columns:1fr}
+    .bcol{display:none}
+    .bcol.active{display:block}
+    .bcol:not(:last-child){border-inline-end:0}
+    .bhead .back{display:inline}
+    .blist{max-height:240px}
+
+    /* התוצאה הופכת לגיליון תחתון */
+    .c-side{position:fixed;inset:0;z-index:70;background:rgba(15,23,42,.45);
+      padding:0;display:none;overflow:auto;align-content:end}
+    .c-side.open{display:grid}
+    .result{border-radius:18px 18px 0 0;max-height:88vh;overflow:auto;padding:16px 16px 26px}
+    .sheet-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+    #resultEyebrow{display:none}
+    .sheet-head button{font-size:22px;color:var(--muted2);line-height:1;padding:0 4px}
+
+    .mbar{display:block;position:fixed;inset-inline:0;bottom:0;z-index:60;background:var(--card);
+      border-top:1px solid var(--line);box-shadow:0 -14px 30px -20px rgba(15,23,42,.35);padding:14px 16px 22px}
+    .mbar .bar{height:10px;margin-bottom:12px}
+    .mbar .row{display:flex;align-items:flex-end;justify-content:space-between;gap:12px}
+    .mbar .lbl{font-size:13px;color:var(--muted)}
+    .mbar .amt{font-size:30px;font-weight:800;letter-spacing:-.03em;line-height:1.15;color:var(--good)}
+    .mbar.empty .amt{color:var(--muted)}
+    .mbar .sum{font-size:13px;color:var(--muted)}
+    .mbar .open-btn{display:flex;align-items:center;gap:6px;background:var(--brand-soft);color:var(--brand-dark);
+      border-radius:11px;padding:11px 14px;font-size:15px;font-weight:600;min-height:48px;flex:0 0 auto}
+    .mbar.empty .open-btn{opacity:.5;pointer-events:none}
+  }
+  @media(prefers-reduced-motion:reduce){
+    .track .fill,.track .knob,.bar span{transition:none}
+  }
 </style>
 </head>
 <body>
 <div class="wrap">
 
-  <header class="hero">
-    <div>
-      <h1>מחשבון מסי יבוא אישי</h1>
-      <p>מע"מ, מכס ומס קנייה — לפי טבלת רשות המסים ושערי בנק ישראל</p>
+  <header class="topbar">
+    <div class="brand">
+      <span class="rule"></span>
+      <div>
+        <h1>מחשבון מסי יבוא אישי</h1>
+        <p>מע״מ, מכס ומס קנייה — לפי טבלת רשות המסים ושערי בנק ישראל</p>
+      </div>
     </div>
-    <span class="stamp hidden" id="updatedLine"><span class="dot"></span><span id="updatedText"></span></span>
+    <span class="pill hidden" id="updatedLine"><span class="dot"></span><span id="updatedText"></span></span>
   </header>
 
-  <div class="card hidden" id="loaderCard">
-    <div id="status" class="status"><span class="spinner"></span><span id="statusText">טוען…</span></div>
-  </div>
+  <div class="status hidden" id="status"><span id="statusText"></span></div>
 
   <div class="layout">
     <div class="col c-main">
 
-      <section class="card">
-        <h2>מה הזמנתם?</h2>
+      <!-- ===== מה הזמנתם ===== -->
+      <section class="card" id="pickCard">
+        <div class="eyebrow">מה הזמנתם</div>
 
-        <div id="pickCard" class="hidden">
-          <div class="field search-wrap">
-            <input type="text" id="search" placeholder="🔎 חיפוש מוצר — לדוגמה: אייפון, נעליים, יין" autocomplete="off">
-            <div class="results" id="results"></div>
+        <div class="search-wrap">
+          <div class="searchbox" id="searchBox">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#1f5fd6" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M16.5 16.5 21 21"></path></svg>
+            <input type="text" id="search" autocomplete="off" placeholder="חיפוש מוצר, מותג או מילה באנגלית">
+            <span class="crumb" id="crumb"></span>
+            <button type="button" class="clear hidden" id="clearBtn" aria-label="ניקוי הבחירה">×</button>
           </div>
-
-          <div class="grid cols-3">
-            <div class="field">
-              <label for="l1">קטגוריה</label>
-              <select id="l1"><option value="">— בחרו —</option></select>
-            </div>
-            <div class="field">
-              <label for="l2">תת-קטגוריה</label>
-              <select id="l2" disabled><option value="">— בחרו —</option></select>
-            </div>
-            <div class="field">
-              <label for="l3">מוצר</label>
-              <select id="l3" disabled><option value="">— בחרו —</option></select>
-            </div>
-          </div>
+          <div class="results" id="results"></div>
         </div>
 
-        <div id="amountCard" class="hidden">
-          <div class="grid cols-3" style="margin-top:12px">
-            <div class="field">
-              <label for="amount">סכום ההזמנה</label>
-              <input type="number" id="amount" min="0" step="0.01" placeholder="0.00">
-            </div>
-            <div class="field">
-              <label for="currency">מטבע</label>
-              <select id="currency">
+        <div class="browse-line" id="browseLine">
+          <button type="button" class="link" id="browseToggle">עיון לפי קטגוריות</button>
+          <span class="chev">›</span>
+          <span id="browseHint">או הקלידו שם מוצר, מותג או מילה באנגלית</span>
+        </div>
+
+        <div class="browser hidden" id="browser">
+          <div class="bcol active" data-level="1">
+            <div class="bhead"><span>קטגוריה</span></div>
+            <div class="blist" id="col1"></div>
+          </div>
+          <div class="bcol" data-level="2">
+            <div class="bhead"><button type="button" class="back" data-back="1">‹</button><span>תת-קטגוריה</span></div>
+            <div class="blist" id="col2"></div>
+          </div>
+          <div class="bcol" data-level="3">
+            <div class="bhead"><button type="button" class="back" data-back="2">‹</button><span>מוצר</span></div>
+            <div class="blist" id="col3"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== סכום ההזמנה ===== -->
+      <section class="card" id="amountCard">
+        <div class="eyebrow">סכום ההזמנה</div>
+
+        <div class="amount-row">
+          <div class="amount-group">
+            <input type="number" id="amount" min="0" step="0.01" placeholder="0.00" inputmode="decimal">
+            <div class="cur">
+              <select id="currency" aria-label="מטבע">
                 <option value="USD">דולר ($)</option>
                 <option value="ILS">שקל (₪)</option>
                 <option value="EUR">אירו (€)</option>
                 <option value="GBP">לירה שטרלינג (£)</option>
               </select>
-            </div>
-            <div class="field hidden" id="qtyField">
-              <label for="qty" id="qtyLabel">כמות</label>
-              <input type="number" id="qty" min="0" step="0.01" value="1">
-              <div class="hint" id="qtyHint"></div>
+              <span class="caret">▾</span>
             </div>
           </div>
-
-          <label class="check">
+          <label class="ship" id="shipToggle">
             <input type="checkbox" id="useExtras">
-            <span>הוספת עלויות משלוח וביטוח לחישוב <span class="opt">(לא חובה)</span></span>
+            <span class="box"></span>
+            <span>משלוח וביטוח</span>
           </label>
+        </div>
 
-          <div id="extrasRow" class="hidden">
-            <div class="grid cols-2">
-              <div class="field">
-                <label for="shipping">עלות משלוח</label>
-                <input type="number" id="shipping" min="0" step="0.01" placeholder="0.00">
-              </div>
-              <div class="field">
-                <label for="insurance">עלות ביטוח</label>
-                <input type="number" id="insurance" min="0" step="0.01" placeholder="0.00">
-              </div>
-            </div>
-            <div class="hint" id="cifHint"></div>
+        <div class="grid2 hidden" id="extrasRow">
+          <div class="fld">
+            <label for="shipping">עלות משלוח</label>
+            <input type="number" id="shipping" min="0" step="0.01" placeholder="0.00" inputmode="decimal">
           </div>
-
-          <div class="rates" id="ratesBar">
-            <span class="spinner hidden" id="ratesSpinner"></span>
-            <span id="ratesText"></span>
+          <div class="fld">
+            <label for="insurance">עלות ביטוח</label>
+            <input type="number" id="insurance" min="0" step="0.01" placeholder="0.00" inputmode="decimal">
           </div>
+        </div>
+        <div class="hint hidden" id="cifHint" style="margin-top:8px"></div>
 
-          <div class="grid cols-2 hidden" id="extraRow" style="margin-top:11px">
-            <div class="field hidden" id="rateSelField">
-              <label for="rateSel" id="rateSelLabel">שער המרה</label>
-              <input type="number" id="rateSel" min="0" step="0.0001">
-              <div class="hint" id="rateSelHint"></div>
-            </div>
-            <div class="field hidden" id="rateUsdField">
-              <label for="rateUsd">שער דולר / ₪</label>
-              <input type="number" id="rateUsd" min="0" step="0.0001">
-              <div class="hint">קובע את מדרגת המס הדולרית.</div>
-            </div>
+        <div class="grid2 hidden" id="qtyRow">
+          <div class="fld">
+            <label for="qty" id="qtyLabel">כמות</label>
+            <input type="number" id="qty" min="0" step="0.01" value="1" inputmode="decimal">
+            <div class="hint" id="qtyHint"></div>
+          </div>
+        </div>
+
+        <div class="rateline" id="rateLine"></div>
+
+        <div class="grid2 hidden" id="rateEdit">
+          <div class="fld">
+            <label for="rateSel" id="rateSelLabel">שער המרה</label>
+            <input type="number" id="rateSel" min="0" step="0.0001" inputmode="decimal">
+            <div class="hint" id="rateSelHint"></div>
+          </div>
+          <div class="fld" id="rateUsdField">
+            <label for="rateUsd">שער דולר / ₪</label>
+            <input type="number" id="rateUsd" min="0" step="0.0001" inputmode="decimal">
+            <div class="hint">קובע את מדרגת המס הדולרית.</div>
           </div>
         </div>
       </section>
 
-
-    </div>
-
-    <div class="col c-side">
-      <section class="card result empty" id="resultCard">
-        <h2>המס לתשלום</h2>
-        <div class="badge-row hidden" id="badges"></div>
-        <div class="hero-num">
-          <div class="lbl">סה"כ מסים ואגרות משוערים</div>
-          <div class="amt" id="taxMain">—</div>
-          <div class="alt" id="taxAlt">בחרו מוצר והזינו סכום</div>
+      <!-- ===== מדרגת המס ===== -->
+      <section class="card hidden" id="bracketCard">
+        <div class="brk-head">
+          <div class="eyebrow" style="margin:0">מדרגת המס</div>
+          <div class="cur-band" id="curBand"></div>
         </div>
-        <table class="kv" id="kv"></table>
-        <div class="note hidden" id="noteBox"><h3>שימו לב</h3><div id="noteText"></div></div>
-        <details class="acc hidden" id="formulaBox" style="margin-top:11px;box-shadow:none">
-          <summary>פירוט החישוב</summary>
-          <div class="acc-body" style="padding:0 12px 12px">
-            <div class="formula" id="formula"></div>
-          </div>
-        </details>
+        <div class="track">
+          <div class="fill" id="brkFill" style="width:0%"></div>
+          <div class="tick" style="inset-inline-start:7.5%"></div>
+          <div class="tick" style="inset-inline-start:50%"></div>
+          <div class="knob" id="brkKnob" style="inset-inline-start:0%"></div>
+        </div>
+        <div class="ticks">
+          <bdi>0</bdi><bdi dir="ltr">$75</bdi><bdi dir="ltr">$500</bdi><bdi dir="ltr" id="tickTop">$1,000</bdi>
+        </div>
+        <div class="next-note hidden" id="nextNote"></div>
       </section>
-    </div>
-    <div class="col c-extra">
+
+      <!-- ===== הסברים ===== -->
+      <div class="accs">
         <details class="acc">
           <summary>איך המס מחושב?</summary>
           <div class="acc-body">
-            <p>סך המסים כולל <strong>מע"מ (כיום 18%), מכס ומס קנייה</strong>. מדרגת המס נקבעת לפי שווי ההזמנה
-               בדולר, לפי השער היציג של בנק ישראל: עד 75$ / 75–500$ / 500–1,000$ / מעל 1,000$.</p>
-            <p>בחלק מהמוצרים (טבק, משקאות, בשר ועוד) מתווסף סכום קבוע לפי כמות — ק"ג, ליטר, מ"ל, אלף יחידות
-               או פריט. במקרים כאלה מופיע בטבלה <strong>"אל"פ"</strong> (אבל לא פחות — נלקח הסכום הגבוה)
-               או <strong>"אל"י"</strong> (אבל לא יותר — נלקח הסכום הנמוך). פירוט החישוב המלא מוצג בכל תוצאה.</p>
+            <p>סך המסים כולל <strong>מע״מ (כיום 18%), מכס ומס קנייה</strong>. מדרגת המס נקבעת לפי שווי ההזמנה
+               בדולר, לפי השער היציג של בנק ישראל: עד <bdi dir="ltr">$75</bdi> / <bdi dir="ltr">$75–500</bdi> /
+               <bdi dir="ltr">$500–1,000</bdi> / מעל <bdi dir="ltr">$1,000</bdi>.</p>
+            <p>בחלק מהמוצרים (טבק, משקאות, בשר ועוד) מתווסף סכום קבוע לפי כמות — ק״ג, ליטר, מ״ל, אלף יחידות
+               או פריט. במקרים כאלה מופיע בטבלה <strong>״אל״פ״</strong> (אבל לא פחות — נלקח הסכום הגבוה)
+               או <strong>״אל״י״</strong> (אבל לא יותר — נלקח הסכום הנמוך). פירוט החישוב המלא מוצג בכל תוצאה.</p>
             <p><strong>משלוח וביטוח:</strong> ערך המשלוח למכס (CIF) הוא שווי המוצר בתוספת ההובלה והביטוח.
-               בהזמנה עד 75$ ערך החבילה אינו כולל משלוח וביטוח; מעל 75$ הם נחשבים חלק מהשווי לצורך חישוב המס.</p>
-            <p><strong>אגרות:</strong> נקבעות לפי שווי המוצר — <strong>אגרת מחשב</strong> 21 ₪ מעל 100$
-               ועד 1,000$, ו-42 ₪ מעל 1,000$; <strong>אגרת ביטחון</strong> 49 ₪ מעל 500$.</p>
+               בהזמנה עד <bdi dir="ltr">$75</bdi> ערך החבילה אינו כולל משלוח וביטוח; מעליו הם נחשבים חלק
+               מהשווי לצורך חישוב המס.</p>
+            <p><strong>אגרות:</strong> נקבעות לפי שווי המוצר — <strong>אגרת מחשב</strong> 21 ₪ מעל
+               <bdi dir="ltr">$100</bdi> ועד <bdi dir="ltr">$1,000</bdi>, ו-42 ₪ מעל <bdi dir="ltr">$1,000</bdi>;
+               <strong>אגרת ביטחון</strong> 49 ₪ מעל <bdi dir="ltr">$500</bdi>.</p>
           </div>
         </details>
 
@@ -328,10 +450,55 @@
             </ul>
           </div>
         </details>
+      </div>
+    </div>
+
+    <!-- ===== תוצאה ===== -->
+    <div class="col c-side" id="sideCol">
+      <section class="card result empty" id="resultCard">
+        <div class="sheet-head">
+          <div class="eyebrow" style="margin:0">המס לתשלום</div>
+          <button type="button" id="sheetClose" aria-label="סגירה">×</button>
+        </div>
+        <div class="eyebrow" id="resultEyebrow">המס לתשלום</div>
+
+        <div class="hero-num">
+          <div class="lbl">סה״כ מסים ואגרות משוערים</div>
+          <div class="amt num" id="taxMain">—</div>
+          <div class="sub" id="taxAlt">בחרו מוצר והזינו סכום</div>
+        </div>
+
+        <div class="chips hidden" id="chips"></div>
+
+        <div class="bar-wrap hidden" id="barWrap">
+          <div class="bar" id="bar"></div>
+          <div class="legend" id="legend"></div>
+        </div>
+
+        <div class="rows" id="rows"></div>
+
+        <div class="note hidden" id="noteBox"><h3>שימו לב</h3><div id="noteText"></div></div>
+
+        <details class="calc hidden" id="formulaBox">
+          <summary>פירוט החישוב</summary>
+          <div class="formula" id="formula"></div>
+        </details>
+      </section>
     </div>
   </div>
+</div>
 
-  <p class="foot">הנתונים נמשכים מרשות המסים ומבנק ישראל ומתעדכנים אוטומטית מדי יום. להערכה בלבד.</p>
+<!-- ===== סרגל תוצאה במובייל ===== -->
+<div class="mbar empty" id="mbar">
+  <div class="bar hidden" id="mbar-bar"></div>
+  <div class="row">
+    <div>
+      <div class="lbl">סה״כ מסים ואגרות</div>
+      <div class="amt num" id="mbar-amt">—</div>
+      <div class="sum" id="mbar-sum">בחרו מוצר והזינו סכום</div>
+    </div>
+    <button type="button" class="open-btn" id="mbar-open"><span>פירוט</span><span>›</span></button>
+  </div>
 </div>
 
 <!-- EMBEDDED-DATA:START -->
@@ -678,66 +845,6 @@
     return { records, rates: o.rates || null, updated: o.updated || "" };
   }
 
-  function useRecords(recs){
-    RECORDS = recs;
-    TREE = buildTree(recs);
-    fillSelect($("l1"), [...TREE.keys()].sort(heSort));
-    $("pickCard").classList.remove("hidden");
-    $("amountCard").classList.remove("hidden");
-    // במצב תקין אין מה להציג למשתמש מלבד תאריך העדכון שבכותרת
-    $("loaderCard").classList.add("hidden");
-    showUpdated();
-  }
-
-  // "2026-08-10" -> "10.08.2026"
-  function fmtDate(iso){
-    const m = String(iso || "").match(/^(\d{4})-(\d{2})-(\d{2})/);
-    return m ? m[3] + "." + m[2] + "." + m[1] : String(iso || "");
-  }
-
-  // "עודכן היום" / "עודכן אתמול" / "עודכן לפני N ימים" / תאריך מלא
-  function updatedLabel(iso){
-    const m = String(iso || "").match(/^(\d{4})-(\d{2})-(\d{2})/);
-    if (!m) return { text:"", days:99 };
-    const then = new Date(+m[1], +m[2] - 1, +m[3]);
-    const today = new Date(); today.setHours(0, 0, 0, 0);
-    const days = Math.round((today - then) / 86400000);
-    // התאריך המלא מוצג תמיד לצד הניסוח היחסי, כדי שיהיה ברור שזה נתון ולא סתם טקסט
-    const date = fmtDate(iso);
-    if (days <= 0) return { text:"עודכן היום · " + date, days:0 };
-    if (days === 1) return { text:"עודכן אתמול · " + date, days:1 };
-    if (days < 7) return { text:"עודכן לפני " + days + " ימים · " + date, days };
-    return { text:"עודכן ב-" + date, days };
-  }
-
-  function showUpdated(){
-    const d = EMBEDDED && EMBEDDED.updated;
-    if (!d) return;
-    const u = updatedLabel(d);
-    const el = $("updatedLine");
-    $("updatedText").textContent = u.text;
-    el.title = "הנתונים הופקו בתאריך " + fmtDate(d);
-    el.classList.toggle("fresh", u.days <= 1);
-    el.classList.toggle("stale", u.days > 3);
-    el.classList.remove("hidden");
-  }
-
-  async function boot(){
-    if (!EMBEDDED) EMBEDDED = readEmbedded();
-    // הנתונים המוטמעים בדף הם מקור האמת — אין צורך בשום קריאת רשת
-    if (EMBEDDED){ useRecords(EMBEDDED.records); return; }
-
-    const cached = loadCache();
-    if (cached){ useRecords(cached); return; }
-    try{
-      const recs = await fetchData();
-      saveCache(recs);
-      useRecords(recs);
-    }catch(e){
-      setStatus("err", "לא ניתן לטעון את נתוני המסים כרגע. נסו שוב מאוחר יותר.", false);
-    }
-  }
-
   /* ==================== שערי חליפין יציגים — בנק ישראל ==================== */
   // מקור: EDGE של בנק ישראל (SDMX). מנסה כמה נקודות קצה, ואם כולן נכשלות
   // נשארים שערי ברירת המחדל וניתן להזין שער ידנית.
@@ -871,22 +978,6 @@
     return null;
   }
 
-  function renderRates(state){
-    const bar = $("ratesBar");
-    const txt = $("ratesText");
-    $("ratesSpinner").classList.toggle("hidden", state !== "loading");
-    bar.classList.toggle("err", state === "error");
-    if (state === "loading"){ txt.textContent = "טוען שערי חליפין מבנק ישראל…"; return; }
-
-    const parts = ["USD","EUR","GBP"]
-      .filter(c => RATES[c] && RATES[c].rate)
-      .map(c => "1" + CURRENCIES[c].sign + " = <b>" + nfNum4.format(RATES[c].rate) + " ₪</b>");
-    const head = state === "error"
-      ? "שערי חליפין משוערים — מומלץ לעדכן ידנית: "
-      : "שער יציג של בנק ישראל" + (RATES_DATE ? ", " + fmtDate(RATES_DATE) : "") + ": ";
-    txt.innerHTML = esc(head) + parts.join(' <span class="sep">·</span> ');
-  }
-
   function ratesDate(found){
     for (const c of ["USD","EUR","GBP"]) if (found[c] && found[c].date) return found[c].date;
     return "";
@@ -901,8 +992,301 @@
     return out;
   }
 
+  // אגרות המכס, לפי שווי המוצר בדולר (ולא לפי ערך המשלוח למכס).
+  // אגרת מחשב: מעל 100$ ועד 1,000$ — 21 ₪; מעל 1,000$ — 42 ₪.
+  function computerFee(usd){ return usd > 1000 ? 42 : usd > 100 ? 21 : 0; }
+  // אגרת ביטחון: מעל 500$ — 49 ₪.
+  function securityFee(usd){ return usd > 500 ? 49 : 0; }
+
+  function bandOf(usd){
+    if (usd <= 75) return {key:"t1", label:"עד 75$"};
+    if (usd <= 500) return {key:"t2", label:"מעל 75$ ועד 500$"};
+    if (usd <= 1000) return {key:"t3", label:"מעל 500$ ועד 1,000$"};
+    return {key:"t4", label:"מעל 1,000$"};
+  }
+
+  // האם המס הוא מע"מ בלבד (ללא מכס ומס קנייה)?
+  function isVatOnly(parsed){
+    return parsed.ok && !parsed.exempt && parsed.alts.length === 1 &&
+      parsed.alts[0].percent === VAT_RATE && !parsed.alts[0].fixed;
+  }
+
+  // קריאת שער משדה: ריק => השער מבנק ישראל; ערך לא חיובי => שגיאה (NaN)
+  function readRate(id, fallback){
+    const raw = String($(id).value).trim();
+    if (raw === "") return fallback > 0 ? fallback : NaN;
+    const n = toNumber(raw);
+    return n > 0 ? n : NaN;
+  }
+
+  // האם המשתמש דרס את השער שהתקבל מבנק ישראל?
+  function isManualRate(cur, selRate, usdRate){
+    const differs = (used, official) => official > 0 && Math.abs(used - round4(official)) > 1e-6;
+    if (cur !== "ILS" && differs(selRate, RATES[cur] && RATES[cur].rate)) return true;
+    if (cur !== "USD" && differs(usdRate, RATES.USD && RATES.USD.rate)) return true;
+    return false;
+  }
+
+
+  /* ========================= תצוגה: מצב הבחירה ========================= */
+
+  const round4 = n => Math.round(n * 10000) / 10000;
+  // דולרים נכתבים סימן-תחילה ומבודדים ב-bdi, אחרת ה-bidi הופך אותם
+  const nfUsd2 = new Intl.NumberFormat("he-IL", {minimumFractionDigits:2, maximumFractionDigits:2});
+  const usdTxt = v => "$" + (Math.abs(v - Math.round(v)) < 0.005 ? nfNum.format(Math.round(v)) : nfUsd2.format(v));
+
+  let SEL = { l1:"", l2:"", l3:"" };   // הבחירה הנוכחית בעץ המוצרים
+  let browseLevel = 1;                 // במובייל הבורר מציג עמודה אחת בכל פעם
+
+  function currentRecord(){
+    const m1 = TREE.get(SEL.l1);
+    const m2 = m1 && m1.get(SEL.l2);
+    return (m2 && m2.get(SEL.l3)) || null;
+  }
+
+  function useRecords(recs){
+    RECORDS = recs;
+    TREE = buildTree(recs);
+    renderBrowser();
+    $("status").classList.add("hidden");
+    showUpdated();
+    calc();
+  }
+
+  // "2026-08-23" -> "23.08.2026"
+  function fmtDate(iso){
+    const m = String(iso || "").match(/^(\d{4})-(\d{2})-(\d{2})/);
+    return m ? m[3] + "." + m[2] + "." + m[1] : String(iso || "");
+  }
+  // "2026-08-23" -> "23.8.26"  (הפורמט הקצר שבתגית)
+  function fmtShort(iso){
+    const m = String(iso || "").match(/^(\d{4})-(\d{2})-(\d{2})/);
+    return m ? Number(m[3]) + "." + Number(m[2]) + "." + m[1].slice(2) : String(iso || "");
+  }
+
+  function daysSince(iso){
+    const m = String(iso || "").match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (!m) return 99;
+    const then = new Date(+m[1], +m[2] - 1, +m[3]);
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    return Math.round((today - then) / 86400000);
+  }
+
+  function showUpdated(){
+    const d = EMBEDDED && EMBEDDED.updated;
+    if (!d) return;
+    const days = daysSince(d);
+    const el = $("updatedLine");
+    $("updatedText").textContent = (days <= 0 ? "נתונים מעודכנים · " : days === 1 ? "עודכן אתמול · " : "עודכן · ") + fmtShort(d);
+    el.title = "הנתונים הופקו בתאריך " + fmtDate(d);
+    el.classList.toggle("stale", days > 1);
+    el.classList.remove("hidden");
+  }
+
+  async function boot(){
+    if (!EMBEDDED) EMBEDDED = readEmbedded();
+    if (EMBEDDED){ useRecords(EMBEDDED.records); return; }
+    const cached = loadCache();
+    if (cached){ useRecords(cached); return; }
+    try{
+      const recs = await fetchData();
+      saveCache(recs);
+      useRecords(recs);
+    }catch(e){
+      $("statusText").textContent = "לא ניתן לטעון את נתוני המסים כרגע. נסו שוב מאוחר יותר.";
+      $("status").classList.remove("hidden");
+    }
+  }
+
+  /* ========================= בורר הקטגוריות ========================= */
+
+  function browseBtn(label, on, leaf, onClick){
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "b" + (on ? " on" : "") + (leaf ? " leaf" : "");
+    b.innerHTML = "<span>" + esc(label) + "</span>" +
+      (on ? '<span class="mark">' + (leaf ? "✓" : "›") + "</span>" : "");
+    b.onclick = onClick;
+    return b;
+  }
+
+  function fillCol(el, items, sel, leaf, emptyText, onPick){
+    el.innerHTML = "";
+    if (!items){ el.innerHTML = '<div class="none">' + esc(emptyText) + "</div>"; return; }
+    for (const it of items) el.appendChild(browseBtn(it, it === sel, leaf, () => onPick(it)));
+  }
+
+  function renderBrowser(){
+    if (!TREE.size) return;
+    fillCol($("col1"), [...TREE.keys()].sort(heSort), SEL.l1, false, "", v => pick(1, v));
+    const m1 = TREE.get(SEL.l1);
+    fillCol($("col2"), m1 ? [...m1.keys()].sort(heSort) : null, SEL.l2, false, "— בחרו קטגוריה —", v => pick(2, v));
+    const m2 = m1 && m1.get(SEL.l2);
+    fillCol($("col3"), m2 ? [...m2.keys()].sort(heSort) : null, SEL.l3, true, "— בחרו תת-קטגוריה —", v => pick(3, v));
+    for (const c of document.querySelectorAll(".bcol")) c.classList.toggle("active", +c.dataset.level === browseLevel);
+  }
+
+  function pick(level, value){
+    if (level === 1){ SEL = { l1:value, l2:"", l3:"" }; browseLevel = 2; }
+    else if (level === 2){ SEL.l2 = value; SEL.l3 = ""; browseLevel = 3; }
+    else { SEL.l3 = value; }
+    renderBrowser();
+    syncSelection();
+    if (level === 3) openBrowser(false);
+    calc();
+  }
+
+  function openBrowser(open){
+    $("browser").classList.toggle("hidden", !open);
+    $("browseLine").classList.toggle("open", open);
+    if (open){
+      browseLevel = SEL.l3 ? 3 : SEL.l2 ? 3 : SEL.l1 ? 2 : 1;
+      renderBrowser();
+    }
+  }
+
+  $("browseToggle").onclick = () => openBrowser($("browser").classList.contains("hidden"));
+  for (const b of document.querySelectorAll(".bhead .back")){
+    b.onclick = () => { browseLevel = +b.dataset.back; renderBrowser(); };
+  }
+
+  // מציג את הבחירה בשדה החיפוש: שם המוצר + נתיב הקטגוריות
+  function syncSelection(){
+    const has = !!SEL.l3;
+    $("search").value = has ? SEL.l3 : "";
+    $("crumb").textContent = has ? SEL.l1 + " · " + SEL.l2 : "";
+    $("clearBtn").classList.toggle("hidden", !has);
+    $("searchBox").classList.toggle("filled", has);
+  }
+
+  $("clearBtn").onclick = () => {
+    SEL = { l1:"", l2:"", l3:"" };
+    browseLevel = 1;
+    syncSelection(); renderBrowser(); closeResults();
+    $("search").focus();
+    calc();
+  };
+
+  /* ============================ חיפוש ============================ */
+
+  const searchNorm = s => String(s || "").toLowerCase().replace(/["'\-.,]/g, "").replace(/\s+/g, " ").trim();
+
+  // מחפש בשם המוצר, בקטגוריות, וגם ב-Keywords שמגיעים מרשות המסים
+  function searchProducts(q){
+    const needle = searchNorm(q);
+    if (needle.length < 2) return [];
+    const byName = [], byKeyword = [];
+    for (const [l1, m1] of TREE){
+      for (const [l2, m2] of m1){
+        for (const [l3, rec] of m2){
+          if (searchNorm(l1 + " " + l2 + " " + l3).indexOf(needle) !== -1) byName.push({l1, l2, l3});
+          else if (rec && rec.kw && searchNorm(rec.kw).indexOf(needle) !== -1) byKeyword.push({l1, l2, l3});
+          if (byName.length + byKeyword.length >= 60) return byName.concat(byKeyword);
+        }
+      }
+    }
+    return byName.concat(byKeyword);
+  }
+
+  let hits = [], cursor = -1, searchTimer = 0;
+
+  function closeResults(){ $("results").classList.remove("open"); cursor = -1; }
+
+  function renderResults(){
+    const box = $("results");
+    if (!hits.length){
+      box.innerHTML = '<div class="empty">לא נמצאו מוצרים מתאימים</div>';
+      box.classList.add("open");
+      return;
+    }
+    box.innerHTML = hits.map((h, i) =>
+      '<button type="button" data-i="' + i + '" class="' + (i === cursor ? "on" : "") + '">' +
+      '<span class="r1">' + esc(h.l3) + "</span><br>" +
+      '<span class="r2">' + esc(h.l1) + " · " + esc(h.l2) + "</span></button>").join("");
+    for (const b of box.querySelectorAll("button")) b.onclick = () => choose(hits[+b.dataset.i]);
+    box.classList.add("open");
+  }
+
+  function choose(h){
+    SEL = { l1:h.l1, l2:h.l2, l3:h.l3 };
+    syncSelection(); renderBrowser(); closeResults();
+    calc();
+  }
+
+  $("search").addEventListener("input", () => {
+    clearTimeout(searchTimer);
+    const q = $("search").value;
+    searchTimer = setTimeout(() => {
+      if (searchNorm(q).length < 2){ closeResults(); return; }
+      hits = searchProducts(q); cursor = -1; renderResults();
+    }, 120);
+  });
+
+  $("search").addEventListener("keydown", e => {
+    const open = $("results").classList.contains("open");
+    if (e.key === "Escape"){ closeResults(); return; }
+    if (!open || !hits.length) return;
+    if (e.key === "ArrowDown" || e.key === "ArrowUp"){
+      e.preventDefault();
+      cursor = (cursor + (e.key === "ArrowDown" ? 1 : hits.length - 1) + (cursor < 0 && e.key === "ArrowUp" ? 1 : 0)) % hits.length;
+      renderResults();
+      const on = $("results").querySelector("button.on");
+      if (on) on.scrollIntoView({block:"nearest"});
+    }else if (e.key === "Enter"){
+      e.preventDefault();
+      choose(hits[cursor >= 0 ? cursor : 0]);
+    }
+  });
+
+  document.addEventListener("click", e => {
+    if (!e.target.closest(".search-wrap")) closeResults();
+  });
+
+  /* ======================= שערים: שורה + עריכה ======================= */
+
+  function applyRates(){
+    const cur = $("currency").value;
+    const sel = RATES[cur] && RATES[cur].rate;
+    $("rateSel").value = cur === "ILS" ? "" : (sel ? round4(sel) : "");
+    $("rateUsd").value = RATES.USD && RATES.USD.rate ? round4(RATES.USD.rate) : "";
+    $("rateSelLabel").textContent = "שער " + (CURRENCIES[cur] ? CURRENCIES[cur].name : cur) + " / ₪";
+    $("rateSelHint").textContent = RATES_SOURCE === "ברירת מחדל"
+      ? "שער משוער — מומלץ לעדכן ידנית."
+      : "שער יציג של בנק ישראל" + (RATES_DATE ? ", " + fmtDate(RATES_DATE) : "") + ". ניתן לעריכה.";
+    $("rateSel").closest(".fld").classList.toggle("hidden", cur === "ILS");
+    $("rateUsdField").classList.toggle("hidden", cur === "USD");
+  }
+
+  let ratesState = "loading";
+
+  function renderRates(state){
+    if (state) ratesState = state;
+    const el = $("rateLine");
+    el.classList.toggle("err", ratesState === "error");
+    if (ratesState === "loading"){
+      el.innerHTML = '<span class="spinner"></span><span>טוען שערים…</span>';
+      return;
+    }
+    const cur = $("currency").value;
+    const amount = toNumber($("amount").value);
+    const selRate = cur === "ILS" ? 1 : (readRate("rateSel", RATES[cur] && RATES[cur].rate) || 0);
+    const usdRate = cur === "USD" ? selRate : (readRate("rateUsd", RATES.USD && RATES.USD.rate) || 0);
+    const shown = cur === "ILS" ? usdRate : selRate;
+    const label = cur === "ILS" ? "מדרגת המס לפי שער דולר יציג" : "לפי שער יציג";
+    const money = cur !== "ILS" && amount > 0 ? nfILS.format(amount * selRate) + " " : "";
+    const warn = ratesState === "error" ? "שערים משוערים — " : "";
+    el.innerHTML =
+      "<span>" + esc(warn + money + label) + ' <b class="num">' + esc(nfNum4.format(shown || 0)) + "</b></span>" +
+      '<span class="sep">·</span>' +
+      '<button type="button" class="link" id="rateEditBtn">עריכת שער</button>';
+    $("rateEditBtn").onclick = () => {
+      const box = $("rateEdit");
+      box.classList.toggle("hidden");
+      if (!box.classList.contains("hidden")) $("rateSel").focus();
+    };
+  }
+
   async function loadRates(){
-    // שערים שהוטמעו בדף — ללא קריאת רשת
     const emb = embeddedRates();
     if (emb){
       RATES = Object.assign({}, DEFAULT_RATES, emb);
@@ -929,157 +1313,91 @@
       saveRates(found, RATES_DATE);
       applyRates(); renderRates("ok");
     }else{
-      const emb = embeddedRates();
-      if (emb){
-        // המשיכה החיה נכשלה — נשארים עם השערים שהוטמעו בדף
-        RATES = Object.assign({}, DEFAULT_RATES, emb);
-        RATES_DATE = (EMBEDDED.rates && EMBEDDED.rates.date) || "";
-        RATES_SOURCE = "בנק ישראל";
-        applyRates(); renderRates("ok");
-      }else{
-        RATES = Object.assign({}, DEFAULT_RATES);
-        RATES_DATE = ""; RATES_SOURCE = "ברירת מחדל";
-        applyRates(); renderRates("error");
-      }
+      RATES = Object.assign({}, DEFAULT_RATES);
+      RATES_DATE = ""; RATES_SOURCE = "ברירת מחדל";
+      applyRates(); renderRates("error");
     }
     calc();
   }
 
-  // ממלא את שדות השער לפי המטבע הנבחר (המשתמש יכול לדרוס ידנית)
-  function applyRates(){
-    const cur = $("currency").value;
-    const sel = RATES[cur] && RATES[cur].rate;
-    $("rateSel").value = cur === "ILS" ? "" : (sel ? round4(sel) : "");
-    $("rateUsd").value = RATES.USD && RATES.USD.rate ? round4(RATES.USD.rate) : "";
-    $("rateSelLabel").textContent = "שער " + (CURRENCIES[cur] ? CURRENCIES[cur].name : cur) + " / ₪";
-    $("rateSelHint").textContent = RATES_SOURCE === "ברירת מחדל" ? "שער משוער — מומלץ לעדכן ידנית." : "שער יציג של בנק ישראל, ניתן לעריכה.";
-  }
+  /* ============================ מדרגת המס ============================ */
 
-  const round4 = n => Math.round(n * 10000) / 10000;
-
-  /* ============================== ממשק בחירה ============================== */
-
-  function fillSelect(sel, items){
-    sel.innerHTML = '<option value="">— בחרו —</option>';
-    for (const it of items){
-      const o = document.createElement("option");
-      o.value = it; o.textContent = it;
-      sel.appendChild(o);
+  // הסקאלה אינה לינארית: 0/75/500/1000 ממופים ל-0%/7.5%/50%/100%
+  function bracketPos(usd){
+    const stops = [[0,0],[75,7.5],[500,50],[1000,100]];
+    if (usd >= 1000) return 100;
+    for (let i = 1; i < stops.length; i++){
+      const [v0,p0] = stops[i-1], [v1,p1] = stops[i];
+      if (usd <= v1) return p0 + (usd - v0) / (v1 - v0) * (p1 - p0);
     }
-    sel.disabled = items.length === 0;
+    return 100;
   }
 
-  function resetSelect(sel){
-    sel.innerHTML = '<option value="">— בחרו —</option>';
-    sel.disabled = true;
+  const BAND_RANGE = { t1:"עד $75", t2:"$75–500", t3:"$500–1,000", t4:"מעל $1,000" };
+
+  function renderBracket(rec, goodsUSD, band){
+    const show = !!rec && goodsUSD > 0;
+    $("bracketCard").classList.toggle("hidden", !show);
+    if (!show) return;
+    const pct = bracketPos(goodsUSD);
+    $("brkFill").style.width = pct + "%";
+    $("brkKnob").style.insetInlineStart = pct + "%";
+    $("curBand").innerHTML = 'ההזמנה שלכם במדרגה <b><bdi dir="ltr">' + esc(BAND_RANGE[band.key]) + "</bdi></b>";
+    $("tickTop").textContent = goodsUSD > 1000 ? "$1,000+" : "$1,000";
+
+    const next = [75, 500, 1000].find(b => goodsUSD < b);
+    const note = $("nextNote");
+    if (!next){ note.classList.add("hidden"); return; }
+
+    const over = next + 0.01;
+    const changes = [];
+    const nextRaw = clean(rec[bandOf(over).key]);
+    const curRaw = clean(rec[band.key]);
+    if (nextRaw && curRaw && nextRaw !== curRaw) changes.push("שיעור המס משתנה ל־" + nextRaw);
+    const fc = computerFee(goodsUSD), fc2 = computerFee(over);
+    if (fc2 !== fc) changes.push(fc ? "אגרת המחשב עולה מ־" + fc + " ₪ ל־" + fc2 + " ₪" : "מתווספת אגרת מחשב " + fc2 + " ₪");
+    const fs = securityFee(goodsUSD), fs2 = securityFee(over);
+    if (fs2 !== fs) changes.push("מתווספת אגרת ביטחון " + fs2 + " ₪");
+    if (next === 75) changes.push("משלוח וביטוח ייכללו בשווי לצורך חישוב המס");
+
+    note.innerHTML = "עוד <b>" + bdi(usdTxt(next - goodsUSD)) + "</b> ותעברו למדרגה מעל " +
+      bdi(usdTxt(next)) + (changes.length ? " — " + esc(changes.join("; ")) + "." : ".");
+    note.classList.remove("hidden");
   }
 
-  $("l1").onchange = () => {
-    const m1 = TREE.get($("l1").value);
-    resetSelect($("l2")); resetSelect($("l3"));
-    if (m1) fillSelect($("l2"), [...m1.keys()].sort(heSort));
-    calc();
-  };
-  $("l2").onchange = () => {
-    const m1 = TREE.get($("l1").value);
-    const m2 = m1 && m1.get($("l2").value);
-    resetSelect($("l3"));
-    if (m2) fillSelect($("l3"), [...m2.keys()].sort(heSort));
-    calc();
-  };
-  $("l3").onchange = calc;
+  const bdi = s => '<bdi dir="ltr">' + esc(s) + "</bdi>";
 
-  function currentRecord(){
-    const m1 = TREE.get($("l1").value);
-    const m2 = m1 && m1.get($("l2").value);
-    return (m2 && m2.get($("l3").value)) || null;
-  }
+  /* ============================== חישוב ============================== */
 
-  /* ============================== חיפוש מהיר ============================== */
-
-  // מנרמל לחיפוש: בלי גרשיים, מקפים ורווחים כפולים
-  const searchNorm = s => String(s || "").toLowerCase().replace(/["'\-.,]/g, "").replace(/\s+/g, " ").trim();
-
-  // מחפש בשם המוצר, בקטגוריות, וגם ב-Keywords שמגיעים מרשות המסים
-  // (כך ש"אייפון" ימצא "טלפון סלולרי"). התאמה בשם מדורגת לפני התאמה במילות מפתח.
-  function searchProducts(q){
-    const needle = searchNorm(q);
-    if (needle.length < 2) return [];
-    const byName = [], byKeyword = [];
-    for (const [l1, m1] of TREE){
-      for (const [l2, m2] of m1){
-        for (const [l3, rec] of m2){
-          if (searchNorm(l1 + " " + l2 + " " + l3).indexOf(needle) !== -1){
-            byName.push({l1, l2, l3});
-          }else if (rec && rec.kw && searchNorm(rec.kw).indexOf(needle) !== -1){
-            byKeyword.push({l1, l2, l3});
-          }
-          if (byName.length + byKeyword.length >= 60) return byName.concat(byKeyword);
-        }
-      }
-    }
-    return byName.concat(byKeyword);
-  }
-
-  $("search").addEventListener("input", () => {
-    const box = $("results");
-    const hits = searchProducts($("search").value);
-    if (!hits.length){ box.classList.remove("open"); box.innerHTML = ""; return; }
-    box.innerHTML = hits.map((h,i) =>
-      '<button type="button" data-i="' + i + '"><span class="r1">' + esc(h.l3) + '</span><br>' +
-      '<span class="r2">' + esc(h.l1) + " ← " + esc(h.l2) + '</span></button>').join("");
-    box.classList.add("open");
-    box.querySelectorAll("button").forEach(b => {
-      b.onclick = () => {
-        const h = hits[+b.dataset.i];
-        $("l1").value = h.l1; $("l1").onchange();
-        $("l2").value = h.l2; $("l2").onchange();
-        $("l3").value = h.l3;
-        box.classList.remove("open");
-        $("search").value = h.l3;
-        calc();
-      };
-    });
-  });
-  document.addEventListener("click", e => {
-    if (!e.target.closest(".search-wrap")) $("results").classList.remove("open");
-  });
-
-  /* ============================== חישוב המס ============================== */
-
-  // אגרות המכס, לפי שווי המוצר בדולר (ולא לפי ערך המשלוח למכס).
-  // אגרת מחשב: מעל 100$ ועד 1,000$ — 21 ₪; מעל 1,000$ — 42 ₪.
-  function computerFee(usd){ return usd > 1000 ? 42 : usd > 100 ? 21 : 0; }
-  // אגרת ביטחון: מעל 500$ — 49 ₪.
-  function securityFee(usd){ return usd > 500 ? 49 : 0; }
-
-  function bandOf(usd){
-    if (usd <= 75) return {key:"t1", label:"עד 75$"};
-    if (usd <= 500) return {key:"t2", label:"מעל 75$ ועד 500$"};
-    if (usd <= 1000) return {key:"t3", label:"מעל 500$ ועד 1,000$"};
-    return {key:"t4", label:"מעל 1,000$"};
-  }
-
-  ["amount","qty","rateSel","rateUsd","shipping","insurance"].forEach(id => {
+  ["amount","qty","shipping","insurance","rateSel","rateUsd"].forEach(id => {
     const el = $(id);
     el.addEventListener("input", calc);
     el.addEventListener("change", calc);
   });
+  $("currency").addEventListener("change", () => { applyRates(); calc(); });
   $("useExtras").addEventListener("change", () => {
-    $("extrasRow").classList.toggle("hidden", !$("useExtras").checked);
+    const on = $("useExtras").checked;
+    $("extrasRow").classList.toggle("hidden", !on);
+    $("shipToggle").classList.toggle("on", on);
+    $("shipToggle").querySelector(".box").textContent = on ? "✓" : "";
     calc();
   });
-  $("currency").addEventListener("change", () => { applyRates(); calc(); });
 
-  // מציג/מסתיר את שורת השדות הנוספים (שערי המרה / כמות)
-  function toggleExtras(needsQty){
-    const cur = $("currency").value;
-    const showSel = cur !== "ILS";              // שער המטבע הנבחר מול השקל
-    const showUsd = cur !== "USD";              // שער הדולר — נדרש לקביעת המדרגה
-    $("rateSelField").classList.toggle("hidden", !showSel);
-    $("rateUsdField").classList.toggle("hidden", !showUsd);
-    $("qtyField").classList.toggle("hidden", !needsQty);
-    $("extraRow").classList.toggle("hidden", !showSel && !showUsd && !needsQty);
+  function emptyResult(hint, main){
+    $("resultCard").classList.add("empty");
+    $("taxMain").textContent = main || "—";
+    $("taxAlt").textContent = hint || "";
+    $("rows").innerHTML = "";
+    $("chips").classList.add("hidden");
+    $("barWrap").classList.add("hidden");
+    $("formulaBox").classList.add("hidden");
+    $("noteBox").classList.add("hidden");
+    $("bracketCard").classList.add("hidden");
+    const bar = $("mbar");
+    bar.classList.add("empty");
+    $("mbar-amt").textContent = main || "—";
+    $("mbar-sum").textContent = hint || "";
+    $("mbar-bar").classList.add("hidden");
   }
 
   function calc(){
@@ -1090,13 +1408,16 @@
     // שער המטבע הנבחר מול השקל, ושער הדולר לצורך קביעת המדרגה
     const selRate = cur === "ILS" ? 1 : readRate("rateSel", RATES[cur] && RATES[cur].rate);
     const usdRate = cur === "USD" ? selRate : readRate("rateUsd", RATES.USD && RATES.USD.rate);
+    renderRates();
 
-    if (!rec){ emptyResult("בחרו מוצר והזינו סכום"); toggleExtras(false); $("cifHint").textContent = ""; return; }
-
+    if (!rec || !(amount > 0)){
+      $("qtyRow").classList.add("hidden");
+      emptyResult("בחרו מוצר והזינו סכום");
+      return;
+    }
     if (!(selRate > 0) || !(usdRate > 0)){
-      toggleExtras(false);
-      emptyResult("הזינו שער חליפין תקין כדי לחשב", "חסר שער חליפין");
-      showNote(rec.note);
+      $("qtyRow").classList.add("hidden");
+      emptyResult("הזינו שער חליפין תקין כדי לחשב", "חסר שער");
       return;
     }
 
@@ -1115,36 +1436,27 @@
     const band = bandOf(goodsUSD);
     const withExtras = goodsUSD > 75 && extrasILS > 0;
     const valueILS = withExtras ? cifILS : goodsILS;
-    const valueUSD = valueILS / usdRate;
 
-    $("cifHint").textContent = !(goodsILS > 0) ? ""
-      : goodsUSD > 75
-        ? "מעל 75$ — משלוח וביטוח נכללים בשווי לצורך חישוב המס (CIF)."
-        : "עד 75$ — משלוח וביטוח אינם נכללים בשווי לצורך חישוב המס.";
+    $("cifHint").textContent = !useExtras ? "" : goodsUSD > 75
+      ? "מעל $75 — משלוח וביטוח נכללים בשווי לצורך חישוב המס (CIF)."
+      : "עד $75 — משלוח וביטוח אינם נכללים בשווי לצורך חישוב המס.";
+    $("cifHint").classList.toggle("hidden", !useExtras);
 
     const parsed = parseTax(rec[band.key]);
 
     // שדה כמות מוצג רק כשצריך (טבק/אלכוהול/יחידות)
-    toggleExtras(parsed.needsQty);
+    $("qtyRow").classList.toggle("hidden", !parsed.needsQty);
     if (parsed.needsQty){
       $("qtyLabel").textContent = "כמות (" + parsed.unit.label + ")";
       $("qtyHint").textContent = QTY_HINTS[parsed.unit.id] || "הזינו את הכמות";
     }
     const qty = parsed.needsQty ? toNumber($("qty").value) : 0;
 
-    $("resultCard").classList.remove("empty");
-    $("badges").classList.remove("hidden");
-    $("formulaBox").classList.remove("hidden");
-
-    // תגיות
-    $("badges").innerHTML =
-      '<span class="chip">' + esc(rec.l1) + "</span>" +
-      (rec.l2 ? '<span class="chip">' + esc(rec.l2) + "</span>" : "") +
-      '<span class="chip">מדרגה: ' + esc(band.label) + "</span>";
+    renderBracket(rec, goodsUSD, band);
 
     if (!parsed.ok){
       emptyResult(parsed.error, "אין נתון");
-      $("badges").classList.remove("hidden");
+      renderBracket(rec, goodsUSD, band);
       $("formulaBox").classList.remove("hidden");
       $("formula").textContent = 'נתון המס בטבלה: "' + (parsed.raw || "—") + '"';
       showNote(rec.note);
@@ -1163,110 +1475,128 @@
       acc = (r.a.op === "min") ? (r.value < acc.value ? r : acc) : (r.value > acc.value ? r : acc);
     }
     const best = acc;
-    const tax = amount > 0 ? best.value : 0;
+    const tax = best.value;
 
     // אגרות המכס — לפי שווי המוצר, ללא משלוח וביטוח
-    const feeComputer = amount > 0 ? computerFee(goodsUSD) : 0;
-    const feeSecurity = amount > 0 ? securityFee(goodsUSD) : 0;
+    const feeComputer = computerFee(goodsUSD);
+    const feeSecurity = securityFee(goodsUSD);
     const fees = feeComputer + feeSecurity;
     const total = tax + fees;
 
-    $("taxMain").textContent = total === 0 && parsed.exempt ? "פטור ממס" : nfILS.format(total);
-    $("taxAlt").textContent = amount > 0
-      ? (total === 0 && parsed.exempt ? "ללא מס ואגרות" : "≈ " + nfUSD.format(total / usdRate))
-      : "הזינו את סכום ההזמנה לחישוב";
-
-    const effective = valueILS > 0 ? (total / valueILS) * 100 : 0;
-    const rows = [
-      ["המוצר", (rec.l3 || rec.l2 || rec.l1)],
-      ["שווי הטובין", nfILS.format(goodsILS) + " (" + nfUSD.format(goodsUSD) + ")"]
-    ];
-    if (extrasILS > 0){
-      if (shipILS > 0) rows.push(["משלוח", nfILS.format(shipILS)]);
-      if (insILS > 0) rows.push(["ביטוח", nfILS.format(insILS)]);
-      rows.push(["ערך המשלוח למכס", nfILS.format(cifILS) + " (" + nfUSD.format(cifUSD) + ")"]);
-      // בסיס המס מוצג בנפרד רק כשהוא שונה מערך המשלוח (כלומר עד 75$)
-      if (!withExtras) rows.push(["בסיס לחישוב המס", nfILS.format(valueILS) + " (ללא משלוח וביטוח)"]);
-    }
-    if (parsed.needsQty) rows.push(["כמות", nfNum.format(qty) + " " + parsed.unit.label]);
-    rows.push(["מדרגה", band.label]);
-    rows.push(["שער", rateLine(cur, selRate, usdRate)]);
-    rows.push(["סך המסים בטבלה", (parsed.raw || "—") + (isVatOnly(parsed) ? ' (מע"מ בלבד)' : "")]);
-
-    const feeRows = [["מס", nfILS.format(tax)]];
-    if (feeComputer) feeRows.push(["אגרת מחשב", nfILS.format(feeComputer)]);
-    if (feeSecurity) feeRows.push(["אגרת ביטחון", nfILS.format(feeSecurity)]);
-    if (fees) feeRows.push(["סה\"כ מסים ואגרות", nfILS.format(total)]);
-    feeRows.push(["שיעור אפקטיבי", nfNum.format(effective) + "%"]);
-
-    $("kv").innerHTML =
-      rows.map(r => "<tr><td>" + esc(r[0]) + "</td><td>" + esc(r[1]) + "</td></tr>").join("") +
-      feeRows.map(r => '<tr class="fee"><td>' + esc(r[0]) + "</td><td>" + esc(r[1]) + "</td></tr>").join("") +
-      '<tr class="sum"><td>סה"כ לתשלום</td><td>' + esc(nfILS.format(cifILS + total)) + "</td></tr>";
-
-    // פירוט החישוב
-    const lines = results.map((r, i) => {
-      const parts = [];
-      if (r.a.percent) parts.push(nfNum.format(r.a.percent) + "%" +
-        (r.a.percent === VAT_RATE ? ' (מע"מ)' : "") + " × " + nfILS.format(valueILS));
-      if (r.a.fixed) parts.push(nfILS.format(r.a.fixed) + (r.a.unit ? " × " + nfNum.format(qty) + " " + r.a.unit.label : " (סכום קבוע)"));
-      const name = results.length === 1 ? "חישוב"
-        : i === 0 ? "חלופה א'"
-        : r.a.op === "min" ? 'חלופה ב\' (אל"י — אבל לא יותר)'
-        : 'חלופה ב\' (אל"פ — אבל לא פחות)';
-      const chosen = results.length > 1 && r === best
-        ? "  ← נבחר (" + (results.some(x => x.a.op === "min") ? "הנמוך" : "הגבוה") + ")" : "";
-      return name + ": " + (parts.join(" + ") || "0") + " = " + nfILS.format(r.value) + chosen;
+    render(rec, {
+      parsed, band, results, best, qty,
+      goodsILS, shipILS, insILS, extrasILS, cifILS, valueILS, withExtras,
+      usdRate, tax, feeComputer, feeSecurity, fees, total
     });
-    $("formula").textContent = lines.join("\n") + '\n\nנתון מקורי בטבלה: "' + parsed.raw + '"';
+  }
+
+  /* ============================== רינדור ============================== */
+
+  function render(rec, r){
+    const vatOnly = isVatOnly(r.parsed);
+    const exempt = r.parsed.exempt && r.total === 0;
+
+    $("resultCard").classList.remove("empty");
+    $("taxMain").textContent = exempt ? "פטור ממס" : nfILS.format(r.total);
+    const pctOfCost = r.cifILS > 0 ? (r.total / r.cifILS) * 100 : 0;
+    $("taxAlt").innerHTML = exempt ? "ללא מס ואגרות"
+      : bdi(nfNum.format(pctOfCost) + "% מהעלות") + " · " + bdi(usdTxt(r.total / r.usdRate));
+
+    // ---- תגיות ----
+    const chips = [];
+    if (exempt) chips.push(["פטור ממס", "good"]);
+    else if (vatOnly){
+      chips.push(["פטור ממכס", ""]);
+      chips.push(['מע״מ ' + VAT_RATE + "%", ""]);
+      chips.push(["ללא מס קנייה", "off"]);
+    }else{
+      const pct = r.best.a.percent;
+      if (pct) chips.push(["סך מסים " + nfNum.format(pct) + "%", ""]);
+      if (r.best.a.fixed) chips.push(["סכום קבוע לפי כמות", ""]);
+    }
+    if (r.parsed.alts.some(a => a.op === "max")) chips.push(['אל״פ — הגבוה מבין החלופות', ""]);
+    if (r.parsed.alts.some(a => a.op === "min")) chips.push(['אל״י — תקרה', ""]);
+    $("chips").innerHTML = chips.map(c => '<span class="chip ' + c[1] + '">' + esc(c[0]) + "</span>").join("");
+    $("chips").classList.remove("hidden");
+
+    // ---- פס פרופורציות ----
+    const segs = [];
+    segs.push({ v:r.cifILS, c:"var(--seg)", t:r.extrasILS > 0 ? "שווי ההזמנה" : "שווי המוצר" });
+    if (r.tax > 0) segs.push({ v:r.tax, c:"var(--good2)", t: vatOnly ? 'מע״מ' : "מסים" });
+    if (r.fees > 0) segs.push({ v:r.fees, c:"var(--brand-light)", t:"אגרות" });
+    $("bar").innerHTML = segs.map(s => '<span style="flex:' + s.v + ";background:" + s.c + '"></span>').join("");
+    $("mbar-bar").innerHTML = $("bar").innerHTML;
+    $("legend").innerHTML = segs.map(s => '<i style="--sw:' + s.c + '">' + esc(s.t) + "</i>").join("");
+    $("barWrap").classList.remove("hidden");
+    $("mbar-bar").classList.remove("hidden");
+
+    // ---- טבלת הפירוט ----
+    const rows = [];
+    const money = v => nfILS.format(v);
+    rows.push(["שווי ההזמנה", money(r.goodsILS), ""]);
+    if (r.shipILS > 0) rows.push(["משלוח", money(r.shipILS), ""]);
+    if (r.insILS > 0) rows.push(["ביטוח", money(r.insILS), ""]);
+    if (r.extrasILS > 0) rows.push(["בסיס לחישוב המס", money(r.valueILS), ""]);
+    if (r.parsed.needsQty) rows.push(["כמות", nfNum.format(r.qty) + " " + r.parsed.unit.label, ""]);
+
+    if (exempt) rows.push(["מסים", "פטור", "exempt"]);
+    else if (vatOnly){
+      rows.push(["מכס", "פטור", "exempt"]);
+      rows.push(['מע״מ ' + VAT_RATE + "%", money(r.tax), ""]);
+    }else{
+      rows.push(['מסים (מע״מ, מכס ומס קנייה)', money(r.tax), ""]);
+    }
+    if (r.feeComputer) rows.push(["אגרת מחשב", money(r.feeComputer), ""]);
+    if (r.feeSecurity) rows.push(["אגרת ביטחון", money(r.feeSecurity), ""]);
+
+    $("rows").innerHTML =
+      rows.map(x => '<div class="r"><span>' + esc(x[0]) + '</span><b class="num ' + x[2] + '">' + esc(x[1]) + "</b></div>").join("") +
+      '<div class="r total"><span>סה״כ לתשלום</span><b class="num">' + esc(money(r.cifILS + r.total)) + "</b></div>";
+
+    // ---- פירוט החישוב ----
+    const lines = r.results.map((x, i) => {
+      const parts = [];
+      if (x.a.percent) parts.push(nfNum.format(x.a.percent) + "%" +
+        (x.a.percent === VAT_RATE ? ' (מע"מ)' : "") + " × " + nfILS.format(r.valueILS));
+      if (x.a.fixed) parts.push(nfILS.format(x.a.fixed) +
+        (x.a.unit ? " × " + nfNum.format(r.qty) + " " + x.a.unit.label : " (סכום קבוע)"));
+      const name = r.results.length === 1 ? "חישוב"
+        : i === 0 ? "חלופה א'"
+        : x.a.op === "min" ? 'חלופה ב\' (אל"י — אבל לא יותר)'
+        : 'חלופה ב\' (אל"פ — אבל לא פחות)';
+      const chosen = r.results.length > 1 && x === r.best
+        ? "  ← נבחר (" + (r.results.some(y => y.a.op === "min") ? "הנמוך" : "הגבוה") + ")" : "";
+      return name + ": " + (parts.join(" + ") || "0") + " = " + nfILS.format(x.value) + chosen;
+    });
+    $("formula").textContent = lines.join("\n") +
+      '\n\nנתון מקורי בטבלה: "' + r.parsed.raw + '"' +
+      "\nמדרגה: " + r.band.label + " · שער: " + rateLine();
+    $("formulaBox").classList.remove("hidden");
 
     showNote(rec.note);
+
+    // ---- סרגל מובייל ----
+    const summary = [];
+    if (vatOnly){ summary.push('מע״מ ' + VAT_RATE + "%"); summary.push("פטור ממכס"); }
+    else if (exempt) summary.push("פטור ממס");
+    else summary.push("מסים " + nfILS.format(r.tax));
+    if (r.fees) summary.push("אגרות " + (Number.isInteger(r.fees) ? r.fees + " ₪" : nfILS.format(r.fees)));
+    $("mbar").classList.remove("empty");
+    $("mbar-amt").textContent = exempt ? "פטור" : nfILS.format(r.total);
+    $("mbar-sum").textContent = summary.join(" · ");
   }
 
-  // האם המס הוא מע"מ בלבד (ללא מכס ומס קנייה)?
-  function isVatOnly(parsed){
-    return parsed.ok && !parsed.exempt && parsed.alts.length === 1 &&
-      parsed.alts[0].percent === VAT_RATE && !parsed.alts[0].fixed;
-  }
-
-  // קריאת שער משדה: ריק => השער מבנק ישראל; ערך לא חיובי => שגיאה (NaN)
-  function readRate(id, fallback){
-    const raw = String($(id).value).trim();
-    if (raw === "") return fallback > 0 ? fallback : NaN;
-    const n = toNumber(raw);
-    return n > 0 ? n : NaN;
-  }
-
-  // האם המשתמש דרס את השער שהתקבל מבנק ישראל?
-  function isManualRate(cur, selRate, usdRate){
-    const differs = (used, official) => official > 0 && Math.abs(used - round4(official)) > 1e-6;
-    if (cur !== "ILS" && differs(selRate, RATES[cur] && RATES[cur].rate)) return true;
-    if (cur !== "USD" && differs(usdRate, RATES.USD && RATES.USD.rate)) return true;
-    return false;
-  }
-
-  // תיאור השערים ששימשו לחישוב
-  function rateLine(cur, selRate, usdRate){
-    const src = isManualRate(cur, selRate, usdRate) ? "ידני"
-      : (RATES_SOURCE === "בנק ישראל" || RATES_SOURCE === "מטמון")
-        ? "בנק ישראל " + fmtDate(RATES_DATE)
-        : "משוער";
+  // תיאור השערים ששימשו לחישוב (לתוך פירוט החישוב)
+  function rateLine(){
+    const cur = $("currency").value;
+    const selRate = cur === "ILS" ? 1 : readRate("rateSel", RATES[cur] && RATES[cur].rate);
+    const usdRate = cur === "USD" ? selRate : readRate("rateUsd", RATES.USD && RATES.USD.rate);
+    const manual = isManualRate(cur, selRate, usdRate);
     const parts = [];
     if (cur !== "ILS") parts.push("1" + CURRENCIES[cur].sign + " = " + nfNum4.format(selRate) + " ₪");
     if (cur !== "USD") parts.push("1$ = " + nfNum4.format(usdRate) + " ₪");
-    return (parts.join(" · ") || "—") + " · " + src;
-  }
-
-  // מצב "אין מה להציג" — הכרטיס נשאר במקומו כדי שהפריסה לא תקפוץ
-  function emptyResult(hint, main){
-    $("resultCard").classList.add("empty");
-    $("taxMain").textContent = main || "—";
-    $("taxAlt").textContent = hint || "";
-    $("kv").innerHTML = "";
-    $("formula").textContent = "";
-    $("badges").classList.add("hidden");
-    $("formulaBox").classList.add("hidden");
-    showNote("");
+    return (parts.join(" · ") || "—") + " (" + (manual ? "ידני" :
+      RATES_SOURCE === "בנק ישראל" ? "בנק ישראל " + fmtDate(RATES_DATE) : "משוער") + ")";
   }
 
   function showNote(note){
@@ -1275,7 +1605,21 @@
     $("noteText").textContent = n;
   }
 
+  /* ========================== גיליון במובייל ========================== */
+
+  function openSheet(open){
+    $("sideCol").classList.toggle("open", open);
+    document.body.style.overflow = open ? "hidden" : "";
+  }
+  $("mbar-open").onclick = () => openSheet(true);
+  $("sheetClose").onclick = () => openSheet(false);
+  $("sideCol").addEventListener("click", e => { if (e.target === $("sideCol")) openSheet(false); });
+  document.addEventListener("keydown", e => { if (e.key === "Escape") openSheet(false); });
+
+  /* ============================== אתחול ============================== */
+
   EMBEDDED = readEmbedded();
+  syncSelection();
   applyRates();
   boot();
   loadRates();
