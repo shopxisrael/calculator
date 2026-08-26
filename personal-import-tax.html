@@ -237,7 +237,8 @@
     .amount-group input{font-size:22px}
     .searchbox{min-height:48px}
     .crumb,#browseHint{display:none}
-    .ship{min-height:48px;width:100%}
+    /* שני המתגים חולקים שורה, חצי-חצי, מתחת לשדה הסכום */
+    .ship{min-height:48px;flex:1 1 140px;min-width:140px;padding:0 12px;justify-content:center}
     /* בורר קטגוריות: עמודה אחת בכל פעם, עם חזרה */
     .browser{grid-template-columns:1fr}
     .bcol{display:none}
