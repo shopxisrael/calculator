@@ -252,7 +252,7 @@ function parseLegacyRates(json){
 
 // היסטוריית שערים — נדרשת כדי לחשב לפי תאריך הזמנה שעבר.
 // הדפדפן לא יכול לשאול את בנק ישראל ישירות (CORS), ולכן ההיסטוריה מוטמעת בדף.
-const HIST_URL = EDGE + "RER_USD_ILS+RER_EUR_ILS+RER_GBP_ILS?format=sdmx-json&lastNObservations=800";
+const HIST_URL = EDGE + "RER_USD_ILS+RER_EUR_ILS+RER_GBP_ILS?format=sdmx-json&lastNObservations=300";
 
 // מחזיר את כל התצפיות לכל מטבע: {USD:{"2026-08-21":2.991, …}, …}
 function parseSdmxSeries(json){
@@ -300,12 +300,53 @@ function packHistory(series){
   return hist;
 }
 
-async function fetchHistory(){
+// פורק אריזה חזרה ל-{USD:{iso:rate}} כדי לאפשר מיזוג עם המשיכה החדשה
+function unpackHistory(hist){
+  const out = { USD:{}, EUR:{}, GBP:{} };
+  if (!hist || !Array.isArray(hist.d)) return out;
+  const base = Date.parse(hist.from + "T00:00:00Z");
+  hist.d.forEach((off, i) => {
+    const iso = new Date(base + off * 86400000).toISOString().slice(0, 10);
+    for (const c of ["USD","EUR","GBP"]){
+      const v = hist[c] && hist[c][i];
+      if (v > 0) out[c][iso] = v;
+    }
+  });
+  return out;
+}
+
+// ההיסטוריה נצברת: המשיכה מחזירה חלון מתגלגל של 800 תצפיות, ולכן היא
+// ממוזגת עם מה שכבר שמור בקובץ — אחרת תאריכים ישנים היו נושרים עם הזמן.
+// ~14 חודשי מסחר. מספיק לבדיקת הזמנה שדרישת התשלום עליה הגיעה באיחור,
+// ועולה כ-8KB במשקל הדף. הגדלה = שינוי המספר כאן ובכתובת המשיכה למעלה.
+const MAX_OBS = 300;
+
+async function fetchHistory(prevHist){
   console.log("מושך היסטוריית שערים…");
   const json = await fetchJson(HIST_URL, 2);
-  if (!json) return null;
-  const hist = packHistory(parseSdmxSeries(json));
-  if (hist) console.log(`  ${hist.d.length} תצפיות, מ-${hist.from} ואילך`);
+  const fresh = json ? parseSdmxSeries(json) : null;
+  if (!fresh && !prevHist) return null;
+
+  const merged = unpackHistory(prevHist);
+  let added = 0;
+  if (fresh){
+    for (const c of ["USD","EUR","GBP"]){
+      for (const [iso, v] of Object.entries(fresh[c])){
+        if (merged[c][iso] === undefined) added++;
+        merged[c][iso] = v;
+      }
+    }
+  }
+  // גיזום לתקרה, מהישן ביותר
+  const all = [...new Set(Object.values(merged).flatMap(o => Object.keys(o)))].sort();
+  if (all.length > MAX_OBS){
+    const drop = new Set(all.slice(0, all.length - MAX_OBS));
+    for (const c of ["USD","EUR","GBP"]) for (const iso of drop) delete merged[c][iso];
+  }
+
+  const hist = packHistory(merged);
+  if (hist) console.log(`  ${hist.d.length} תצפיות (${added} חדשות), מ-${hist.from} ואילך`);
+  if (!fresh) warn("היסטוריית השערים לא נמשכה — נשמרת ההיסטוריה הקודמת");
   return hist;
 }
 
@@ -386,14 +427,9 @@ async function main(){
     warn("לא ניתן היה למשוך שערים מבנק ישראל — נשמרים השערים הקודמים");
   }
 
-  const hist = await fetchHistory();
-  if (hist) { rates = rates || {}; rates.hist = hist; }
-  else if (prev.rates && prev.rates.hist){
-    rates = rates || {}; rates.hist = prev.rates.hist;
-    warn("היסטוריית השערים לא נמשכה — נשמרת ההיסטוריה הקודמת");
-  }else{
-    warn("אין היסטוריית שערים — חישוב לפי תאריך הזמנה שעבר לא יהיה זמין");
-  }
+  const hist = await fetchHistory(prev.rates && prev.rates.hist);
+  if (hist){ rates = rates || {}; rates.hist = hist; }
+  else warn("אין היסטוריית שערים — חישוב לפי תאריך הזמנה שעבר לא יהיה זמין");
 
   if (!packed || !packed.rows || !packed.rows.length){
     console.error("שגיאה: אין נתוני מסים כלל (לא חדשים ולא קודמים).");

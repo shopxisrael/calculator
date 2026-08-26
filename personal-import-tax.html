@@ -144,6 +144,8 @@
   .fld .hint{font-size:13px;color:var(--muted);margin-top:4px;line-height:1.5}
   .hint{font-size:13px;color:var(--muted);line-height:1.5}
   .hint.warn-text{color:var(--warn-ink)}
+  .fld input.compact{max-width:190px}
+  #dateRow{margin-top:13px}
   .rateline{display:flex;align-items:center;gap:9px;margin-top:13px;font-size:13px;color:var(--muted);flex-wrap:wrap}
   .rateline b{color:var(--ink)}
   .rateline .sep{color:var(--line3)}
@@ -324,6 +326,11 @@
             <span class="box"></span>
             <span>משלוח וביטוח</span>
           </label>
+          <label class="ship" id="dateToggle">
+            <input type="checkbox" id="useDate">
+            <span class="box"></span>
+            <span>תאריך אחר</span>
+          </label>
         </div>
 
         <div class="grid2 hidden" id="extrasRow">
@@ -338,12 +345,15 @@
         </div>
         <div class="hint hidden" id="cifHint" style="margin-top:8px"></div>
 
+        <div class="fld hidden" id="dateRow">
+          <label for="orderDate">תאריך ההזמנה</label>
+          <input type="date" id="orderDate" class="compact">
+          <div class="hint" id="dateHint"></div>
+          <div class="hint">המכס מחשב לפי מועד ההצהרה או השחרור מהמכס — לא בהכרח לפי מועד ההזמנה —
+            ולעיתים לפי שער מכס משלו, שעשוי להיות שונה מהשער היציג.</div>
+        </div>
+
         <div class="grid2">
-          <div class="fld">
-            <label for="orderDate">תאריך ההזמנה</label>
-            <input type="date" id="orderDate">
-            <div class="hint" id="dateHint"></div>
-          </div>
           <div class="fld hidden" id="qtyRow">
             <label for="qty" id="qtyLabel">כמות</label>
             <input type="number" id="qty" min="0" step="0.01" value="1" inputmode="decimal">
@@ -1004,7 +1014,7 @@
 
   // השערים שישמשו לחישוב: לפי התאריך שנבחר, ואם אין היסטוריה — השערים העדכניים
   function ratesForDate(){
-    const iso = $("orderDate").value;
+    const iso = $("useDate").checked ? $("orderDate").value : "";
     const isToday = !iso || iso >= (EMBEDDED && EMBEDDED.rates && EMBEDDED.rates.date || todayISO());
     if (!iso || isToday) return { sel:null, usd:null, date:RATES_DATE, past:false };
     const cur = $("currency").value;
@@ -1298,7 +1308,7 @@
   const HE_DAYS = ["ראשון","שני","שלישי","רביעי","חמישי","שישי","שבת"];
 
   function renderDateHint(b){
-    const iso = $("orderDate").value;
+    const iso = $("useDate").checked ? $("orderDate").value : "";
     const el = $("dateHint");
     el.classList.remove("warn-text");
     if (iso && (b.missing || (b.past && !(b.usd > 0)))){
@@ -1307,7 +1317,7 @@
       return;
     }
     if (!iso || !b.past){
-      el.textContent = history() ? "ברירת מחדל: היום. אפשר לבחור תאריך הזמנה שעבר." : "";
+      el.textContent = iso ? "התאריך שנבחר הוא היום — החישוב לפי השער העדכני." : "";
       return;
     }
     const same = b.date === iso;
@@ -1439,6 +1449,14 @@
   $("currency").addEventListener("change", () => { applyRates(); calc(); });
   // שינוי תאריך: שדות השער מתמלאים מחדש לפי אותו יום, ואז מחשבים
   $("orderDate").addEventListener("change", () => { applyRates(); calc(); });
+  $("useDate").addEventListener("change", () => {
+    const on = $("useDate").checked;
+    $("dateRow").classList.toggle("hidden", !on);
+    $("dateToggle").classList.toggle("on", on);
+    $("dateToggle").querySelector(".box").textContent = on ? "✓" : "";
+    if (on) $("orderDate").focus();
+    applyRates(); calc();
+  });
   $("useExtras").addEventListener("change", () => {
     const on = $("useExtras").checked;
     $("extrasRow").classList.toggle("hidden", !on);
