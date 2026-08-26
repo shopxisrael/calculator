@@ -145,7 +145,9 @@
   .hint{font-size:13px;color:var(--muted);line-height:1.5}
   .hint.warn-text{color:var(--warn-ink)}
   .fld input.compact{max-width:190px}
-  #dateRow{margin-top:13px}
+  .grid3{display:grid;gap:11px;margin-top:13px;align-items:start}
+  @media(min-width:640px){ .grid3{grid-template-columns:1fr 1fr 1fr} }
+  .span-all{grid-column:1/-1}
   .rateline{display:flex;align-items:center;gap:9px;margin-top:13px;font-size:13px;color:var(--muted);flex-wrap:wrap}
   .rateline b{color:var(--ink)}
   .rateline .sep{color:var(--line3)}
@@ -333,24 +335,25 @@
           </label>
         </div>
 
-        <div class="grid2 hidden" id="extrasRow">
-          <div class="fld">
+        <!-- שלושת השדות האופציונליים חולקים שורה אחת, כך שסימון מתג ממלא
+             משבצת קבועה במקום לדחוף את מה שמתחתיו -->
+        <div class="grid3 hidden" id="optRow">
+          <div class="fld hidden" id="shipField">
             <label for="shipping">עלות משלוח</label>
             <input type="number" id="shipping" min="0" step="0.01" placeholder="0.00" inputmode="decimal">
           </div>
-          <div class="fld">
+          <div class="fld hidden" id="insField">
             <label for="insurance">עלות ביטוח</label>
             <input type="number" id="insurance" min="0" step="0.01" placeholder="0.00" inputmode="decimal">
           </div>
-        </div>
-        <div class="hint hidden" id="cifHint" style="margin-top:8px"></div>
-
-        <div class="fld hidden" id="dateRow">
-          <label for="orderDate">תאריך ההזמנה</label>
-          <input type="date" id="orderDate" class="compact">
-          <div class="hint" id="dateHint"></div>
-          <div class="hint">המכס מחשב לפי מועד ההצהרה או השחרור מהמכס — לא בהכרח לפי מועד ההזמנה —
-            ולעיתים לפי שער מכס משלו, שעשוי להיות שונה מהשער היציג.</div>
+          <div class="fld hidden" id="dateRow">
+            <label for="orderDate">תאריך ההזמנה</label>
+            <input type="date" id="orderDate" class="compact">
+            <div class="hint" id="dateHint"></div>
+          </div>
+          <div class="hint hidden span-all" id="cifHint"></div>
+          <div class="hint hidden span-all" id="dateNote">המכס מחשב לפי מועד ההצהרה או השחרור מהמכס —
+            לא בהכרח לפי מועד ההזמנה — ולעיתים לפי שער מכס משלו, שעשוי להיות שונה מהשער היציג.</div>
         </div>
 
         <div class="grid2">
@@ -1449,19 +1452,30 @@
   $("currency").addEventListener("change", () => { applyRates(); calc(); });
   // שינוי תאריך: שדות השער מתמלאים מחדש לפי אותו יום, ואז מחשבים
   $("orderDate").addEventListener("change", () => { applyRates(); calc(); });
+  // השורה האופציונלית מוצגת כל עוד אחד המתגים דלוק
+  function syncOptRow(){
+    const any = $("useExtras").checked || $("useDate").checked;
+    $("optRow").classList.toggle("hidden", !any);
+  }
+
   $("useDate").addEventListener("change", () => {
     const on = $("useDate").checked;
     $("dateRow").classList.toggle("hidden", !on);
+    $("dateNote").classList.toggle("hidden", !on);
     $("dateToggle").classList.toggle("on", on);
     $("dateToggle").querySelector(".box").textContent = on ? "✓" : "";
+    syncOptRow();
     if (on) $("orderDate").focus();
     applyRates(); calc();
   });
   $("useExtras").addEventListener("change", () => {
     const on = $("useExtras").checked;
-    $("extrasRow").classList.toggle("hidden", !on);
+    $("shipField").classList.toggle("hidden", !on);
+    $("insField").classList.toggle("hidden", !on);
     $("shipToggle").classList.toggle("on", on);
     $("shipToggle").querySelector(".box").textContent = on ? "✓" : "";
+    syncOptRow();
+    if (on) $("shipping").focus();   // גם מגלגל את השדה החדש לתצוגה במובייל
     calc();
   });
 
