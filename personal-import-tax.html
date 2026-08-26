@@ -57,10 +57,13 @@
 
   .layout{display:grid;gap:16px;align-items:start}
   .col{display:grid;gap:16px;align-content:start;min-width:0}
+  /* במובייל סדר ה-DOM קובע: מוצר ← סכום ← תוצאה ← מדרגה ← הסברים.
+     בדסקטופ התוצאה חוזרת לעמודה הצדדית והשאר נשאר מתחת לטופס. */
   @media(min-width:900px){
     .layout{grid-template-columns:1fr 396px}
     .c-main{grid-column:1;grid-row:1}
-    .c-side{grid-column:2;grid-row:1;position:sticky;top:14px;align-self:start}
+    .c-extra{grid-column:1;grid-row:2}
+    .c-side{grid-column:2;grid-row:1 / span 2;position:sticky;top:14px;align-self:start}
   }
 
   /* ---------- חיפוש ---------- */
@@ -181,7 +184,6 @@
 
   /* ---------- תוצאה ---------- */
   .result{box-shadow:var(--sh-result);padding:22px}
-  .sheet-head{display:none}
   .hero-num{margin-top:14px;border-radius:12px;padding:20px 18px;text-align:center;color:#fff;
     background:linear-gradient(135deg,var(--good),var(--good2))}
   .result.empty .hero-num{background:var(--line2);color:var(--muted)}
@@ -219,10 +221,9 @@
   .formula{margin-top:9px;background:var(--surface2);border:1px dashed var(--line);border-radius:9px;
     padding:9px 11px;font-size:13px;color:#475569;white-space:pre-wrap;word-break:break-word;line-height:1.6}
 
-  /* ---------- סרגל מובייל ---------- */
-  .mbar{display:none}
+  /* ---------- מובייל ---------- */
   @media(max-width:899px){
-    .wrap{padding:16px 16px 150px}
+    .wrap{padding:16px 16px 40px}
     .card{padding:16px}
     .brand h1{font-size:17px}
     .brand p{display:none}
@@ -239,27 +240,6 @@
     .bcol:not(:last-child){border-inline-end:0}
     .bhead .back{display:inline}
     .blist{max-height:240px}
-
-    /* התוצאה הופכת לגיליון תחתון */
-    .c-side{position:fixed;inset:0;z-index:70;background:rgba(15,23,42,.45);
-      padding:0;display:none;overflow:auto;align-content:end}
-    .c-side.open{display:grid}
-    .result{border-radius:18px 18px 0 0;max-height:88vh;overflow:auto;padding:16px 16px 26px}
-    .sheet-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
-    #resultEyebrow{display:none}
-    .sheet-head button{font-size:22px;color:var(--muted2);line-height:1;padding:0 4px}
-
-    .mbar{display:block;position:fixed;inset-inline:0;bottom:0;z-index:60;background:var(--card);
-      border-top:1px solid var(--line);box-shadow:0 -14px 30px -20px rgba(15,23,42,.35);padding:14px 16px 22px}
-    .mbar .bar{height:10px;margin-bottom:12px}
-    .mbar .row{display:flex;align-items:flex-end;justify-content:space-between;gap:12px}
-    .mbar .lbl{font-size:13px;color:var(--muted)}
-    .mbar .amt{font-size:30px;font-weight:800;letter-spacing:-.03em;line-height:1.15;color:var(--good)}
-    .mbar.empty .amt{color:var(--muted)}
-    .mbar .sum{font-size:13px;color:var(--muted)}
-    .mbar .open-btn{display:flex;align-items:center;gap:6px;background:var(--brand-soft);color:var(--brand-dark);
-      border-radius:11px;padding:11px 14px;font-size:15px;font-weight:600;min-height:48px;flex:0 0 auto}
-    .mbar.empty .open-btn{opacity:.5;pointer-events:none}
   }
   @media(prefers-reduced-motion:reduce){
     .track .fill,.track .knob,.bar span{transition:none}
@@ -380,7 +360,38 @@
           </div>
         </div>
       </section>
+    </div>
 
+    <!-- ===== תוצאה ===== -->
+    <div class="col c-side" id="sideCol">
+      <section class="card result empty" id="resultCard">
+        <div class="eyebrow" id="resultEyebrow">המס לתשלום</div>
+
+        <div class="hero-num">
+          <div class="lbl">סה״כ מסים ואגרות משוערים</div>
+          <div class="amt num" id="taxMain">—</div>
+          <div class="sub" id="taxAlt">בחרו מוצר והזינו סכום</div>
+        </div>
+
+        <div class="chips hidden" id="chips"></div>
+
+        <div class="bar-wrap hidden" id="barWrap">
+          <div class="bar" id="bar"></div>
+          <div class="legend" id="legend"></div>
+        </div>
+
+        <div class="rows" id="rows"></div>
+
+        <div class="note hidden" id="noteBox"><h3>שימו לב</h3><div id="noteText"></div></div>
+
+        <details class="calc hidden" id="formulaBox">
+          <summary>פירוט החישוב</summary>
+          <div class="formula" id="formula"></div>
+        </details>
+      </section>
+    </div>
+
+    <div class="col c-extra">
       <!-- ===== מדרגת המס ===== -->
       <section class="card hidden" id="bracketCard">
         <div class="brk-head">
@@ -452,52 +463,6 @@
         </details>
       </div>
     </div>
-
-    <!-- ===== תוצאה ===== -->
-    <div class="col c-side" id="sideCol">
-      <section class="card result empty" id="resultCard">
-        <div class="sheet-head">
-          <div class="eyebrow" style="margin:0">המס לתשלום</div>
-          <button type="button" id="sheetClose" aria-label="סגירה">×</button>
-        </div>
-        <div class="eyebrow" id="resultEyebrow">המס לתשלום</div>
-
-        <div class="hero-num">
-          <div class="lbl">סה״כ מסים ואגרות משוערים</div>
-          <div class="amt num" id="taxMain">—</div>
-          <div class="sub" id="taxAlt">בחרו מוצר והזינו סכום</div>
-        </div>
-
-        <div class="chips hidden" id="chips"></div>
-
-        <div class="bar-wrap hidden" id="barWrap">
-          <div class="bar" id="bar"></div>
-          <div class="legend" id="legend"></div>
-        </div>
-
-        <div class="rows" id="rows"></div>
-
-        <div class="note hidden" id="noteBox"><h3>שימו לב</h3><div id="noteText"></div></div>
-
-        <details class="calc hidden" id="formulaBox">
-          <summary>פירוט החישוב</summary>
-          <div class="formula" id="formula"></div>
-        </details>
-      </section>
-    </div>
-  </div>
-</div>
-
-<!-- ===== סרגל תוצאה במובייל ===== -->
-<div class="mbar empty" id="mbar">
-  <div class="bar hidden" id="mbar-bar"></div>
-  <div class="row">
-    <div>
-      <div class="lbl">סה״כ מסים ואגרות</div>
-      <div class="amt num" id="mbar-amt">—</div>
-      <div class="sum" id="mbar-sum">בחרו מוצר והזינו סכום</div>
-    </div>
-    <button type="button" class="open-btn" id="mbar-open"><span>פירוט</span><span>›</span></button>
   </div>
 </div>
 
@@ -1393,11 +1358,6 @@
     $("formulaBox").classList.add("hidden");
     $("noteBox").classList.add("hidden");
     $("bracketCard").classList.add("hidden");
-    const bar = $("mbar");
-    bar.classList.add("empty");
-    $("mbar-amt").textContent = main || "—";
-    $("mbar-sum").textContent = hint || "";
-    $("mbar-bar").classList.add("hidden");
   }
 
   function calc(){
@@ -1525,10 +1485,8 @@
     if (r.tax > 0) segs.push({ v:r.tax, c:"var(--good2)", t: vatOnly ? 'מע״מ' : "מסים" });
     if (r.fees > 0) segs.push({ v:r.fees, c:"var(--brand-light)", t:"אגרות" });
     $("bar").innerHTML = segs.map(s => '<span style="flex:' + s.v + ";background:" + s.c + '"></span>').join("");
-    $("mbar-bar").innerHTML = $("bar").innerHTML;
     $("legend").innerHTML = segs.map(s => '<i style="--sw:' + s.c + '">' + esc(s.t) + "</i>").join("");
     $("barWrap").classList.remove("hidden");
-    $("mbar-bar").classList.remove("hidden");
 
     // ---- טבלת הפירוט ----
     const rows = [];
@@ -1575,15 +1533,6 @@
 
     showNote(rec.note);
 
-    // ---- סרגל מובייל ----
-    const summary = [];
-    if (vatOnly){ summary.push('מע״מ ' + VAT_RATE + "%"); summary.push("פטור ממכס"); }
-    else if (exempt) summary.push("פטור ממס");
-    else summary.push("מסים " + nfILS.format(r.tax));
-    if (r.fees) summary.push("אגרות " + (Number.isInteger(r.fees) ? r.fees + " ₪" : nfILS.format(r.fees)));
-    $("mbar").classList.remove("empty");
-    $("mbar-amt").textContent = exempt ? "פטור" : nfILS.format(r.total);
-    $("mbar-sum").textContent = summary.join(" · ");
   }
 
   // תיאור השערים ששימשו לחישוב (לתוך פירוט החישוב)
@@ -1604,17 +1553,6 @@
     $("noteBox").classList.toggle("hidden", !n);
     $("noteText").textContent = n;
   }
-
-  /* ========================== גיליון במובייל ========================== */
-
-  function openSheet(open){
-    $("sideCol").classList.toggle("open", open);
-    document.body.style.overflow = open ? "hidden" : "";
-  }
-  $("mbar-open").onclick = () => openSheet(true);
-  $("sheetClose").onclick = () => openSheet(false);
-  $("sideCol").addEventListener("click", e => { if (e.target === $("sideCol")) openSheet(false); });
-  document.addEventListener("keydown", e => { if (e.key === "Escape") openSheet(false); });
 
   /* ============================== אתחול ============================== */
 
