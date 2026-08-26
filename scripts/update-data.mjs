@@ -250,6 +250,65 @@ function parseLegacyRates(json){
   return out;
 }
 
+// היסטוריית שערים — נדרשת כדי לחשב לפי תאריך הזמנה שעבר.
+// הדפדפן לא יכול לשאול את בנק ישראל ישירות (CORS), ולכן ההיסטוריה מוטמעת בדף.
+const HIST_URL = EDGE + "RER_USD_ILS+RER_EUR_ILS+RER_GBP_ILS?format=sdmx-json&lastNObservations=800";
+
+// מחזיר את כל התצפיות לכל מטבע: {USD:{"2026-08-21":2.991, …}, …}
+function parseSdmxSeries(json){
+  const out = { USD:{}, EUR:{}, GBP:{} };
+  const msg = (json && json.data && (json.data.dataSets || json.data.structure || json.data.structures)) ? json.data : json;
+  if (!msg || typeof msg !== "object") return out;
+  const structure = msg.structure || (Array.isArray(msg.structures) && msg.structures[0]) || json.structure;
+  const dataSets = msg.dataSets || msg.dataSet || [];
+  if (!structure || !dataSets.length) return out;
+
+  const dims = (structure.dimensions && structure.dimensions.series) || [];
+  const obsDims = (structure.dimensions && structure.dimensions.observation) || [];
+  const timeVals = (obsDims[0] && obsDims[0].values) || [];
+
+  for (const ds of [].concat(dataSets)){
+    for (const [key, s] of Object.entries((ds && ds.series) || {})){
+      const ids = [];
+      key.split(":").map(Number).forEach((v, i) => {
+        const vals = dims[i] && dims[i].values;
+        if (vals && vals[v] && vals[v].id) ids.push(String(vals[v].id));
+      });
+      const cur = currencyFromCode(ids.join("_"));
+      if (!cur) continue;
+      for (const [k, cell] of Object.entries(s.observations || {})){
+        const t = timeVals[Number(k)];
+        const iso = t ? String(t.id || t.name || "").slice(0, 10) : "";
+        const val = Number(Array.isArray(cell) ? cell[0] : cell);
+        if (/^\d{4}-\d{2}-\d{2}$/.test(iso) && isFinite(val) && val > 0){
+          out[cur][iso] = Math.round(val * 10000) / 10000;
+        }
+      }
+    }
+  }
+  return out;
+}
+
+// אריזה קומפקטית: תאריך בסיס + היסטים בימים + מערך ערכים לכל מטבע
+function packHistory(series){
+  const dates = [...new Set(Object.values(series).flatMap(o => Object.keys(o)))].sort();
+  if (!dates.length) return null;
+  const from = dates[0];
+  const base = Date.parse(from + "T00:00:00Z");
+  const hist = { from, d: dates.map(d => Math.round((Date.parse(d + "T00:00:00Z") - base) / 86400000)) };
+  for (const cur of ["USD","EUR","GBP"]) hist[cur] = dates.map(d => series[cur][d] ?? null);
+  return hist;
+}
+
+async function fetchHistory(){
+  console.log("מושך היסטוריית שערים…");
+  const json = await fetchJson(HIST_URL, 2);
+  if (!json) return null;
+  const hist = packHistory(parseSdmxSeries(json));
+  if (hist) console.log(`  ${hist.d.length} תצפיות, מ-${hist.from} ואילך`);
+  return hist;
+}
+
 async function fetchRates(){
   const found = {};
   for (const url of RATE_URLS){
@@ -320,11 +379,20 @@ async function main(){
   if (found.USD){
     rates = { date: (found.USD.date || found.EUR?.date || found.GBP?.date || "") };
     for (const c of ["USD","EUR","GBP"]) if (found[c]) rates[c] = Math.round(found[c].rate * 10000) / 10000;
-    console.log("  " + JSON.stringify(rates));
+    console.log("  " + JSON.stringify({date:rates.date, USD:rates.USD, EUR:rates.EUR, GBP:rates.GBP}));
     if (!found.EUR || !found.GBP) warn("חלק מהשערים לא נמצאו: " + ["EUR","GBP"].filter(c => !found[c]).join(", "));
   }else{
     failed++;
     warn("לא ניתן היה למשוך שערים מבנק ישראל — נשמרים השערים הקודמים");
+  }
+
+  const hist = await fetchHistory();
+  if (hist) { rates = rates || {}; rates.hist = hist; }
+  else if (prev.rates && prev.rates.hist){
+    rates = rates || {}; rates.hist = prev.rates.hist;
+    warn("היסטוריית השערים לא נמשכה — נשמרת ההיסטוריה הקודמת");
+  }else{
+    warn("אין היסטוריית שערים — חישוב לפי תאריך הזמנה שעבר לא יהיה זמין");
   }
 
   if (!packed || !packed.rows || !packed.rows.length){
