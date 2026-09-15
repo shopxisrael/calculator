@@ -40,6 +40,9 @@
   .brand{display:flex;align-items:center;gap:11px;min-width:0}
   .brand .rule{width:4px;height:26px;border-radius:2px;background:var(--brand);flex:0 0 auto}
   .brand h1{margin:0;font-size:20px;font-weight:800;letter-spacing:-.02em;line-height:1.2}
+  .brand .by{display:inline-block;vertical-align:middle;margin-inline-start:8px;
+    background:var(--brand);color:#fff;border-radius:999px;
+    padding:3px 10px;font-size:11px;font-weight:600;letter-spacing:.04em;white-space:nowrap}
   .brand p{margin:1px 0 0;font-size:13px;font-weight:400;color:var(--muted)}
   .pill{display:flex;align-items:center;gap:7px;background:var(--card);border:1px solid var(--line);
     border-radius:999px;padding:6px 13px;font-size:13px;color:#475569;white-space:nowrap;flex:0 0 auto}
@@ -231,7 +234,7 @@
     .wrap{padding:16px 16px 40px}
     .card{padding:16px}
     .brand h1{font-size:17px}
-    .brand p{display:none}
+    .brand p{font-size:12px}
     .layout{gap:12px}
     .col{gap:12px}
     .amount-group input{font-size:22px}
@@ -265,8 +268,8 @@
     <div class="brand">
       <span class="rule"></span>
       <div>
-        <h1>מחשבון מסי יבוא אישי</h1>
-        <p>מע״מ, מכס ומס קנייה — לפי טבלת רשות המסים ושערי בנק ישראל</p>
+        <h1>מחשבון מסי יבוא אישי <span class="by">של שופ SHOP</span></h1>
+        <p>חישוב מכס, מע״מ ומס קנייה על קניות מחוץ לארץ</p>
       </div>
     </div>
     <span class="pill hidden" id="updatedLine"><span class="dot"></span><span id="updatedText"></span></span>
@@ -453,6 +456,8 @@
             <p><strong>תאריך ההזמנה:</strong> בחירת תאריך שעבר מחשבת לפי השער היציג שהיה בתוקף באותו יום
                (בשבת, בראשון ובחגים אין פרסום, ולכן חל שער יום המסחר הקודם). שימו לב ששיעורי המס עצמם
                נלקחים תמיד מהטבלה העדכנית — אם שיעור השתנה מאז ההזמנה, החישוב לא ישקף זאת.</p>
+            <p><strong>מקור הנתונים:</strong> שיעורי המס לפי נתוני רשות המסים בעניין מסי יבוא על מוצרים,
+               ושערי החליפין לפי השערים היציגים של בנק ישראל. הנתונים נאספים אוטומטית ומוטמעים בדף.</p>
             <p><strong>אגרות:</strong> נקבעות לפי שווי המוצר — <strong>אגרת מחשב</strong> 21 ₪ מעל
                <bdi dir="ltr">$100</bdi> ועד <bdi dir="ltr">$1,000</bdi>, ו-42 ₪ מעל <bdi dir="ltr">$1,000</bdi>;
                <strong>אגרת ביטחון</strong> 49 ₪ מעל <bdi dir="ltr">$500</bdi>.</p>
@@ -505,12 +510,6 @@
 (function(){
   "use strict";
 
-  const API_URL = "https://shaarolami-query.customs.mof.gov.il/CustomspilotWeb/SystemTables/api/GetTableData?tableName=ConcentratedTaxesView&includeMetadata=true";
-  const CACHE_KEY = "pit_tax_data_v1";
-  const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 שעות
-  const RATES_KEY = "pit_rates_v1";
-  const RATES_TTL = 6 * 60 * 60 * 1000; // 6 שעות
-
   const CURRENCIES = {
     ILS: {code:"ILS", sign:"₪", name:"שקל"},
     USD: {code:"USD", sign:"$", name:"דולר"},
@@ -551,115 +550,6 @@
   const nfNum = new Intl.NumberFormat("he-IL", {maximumFractionDigits:2});
   const nfNum4 = new Intl.NumberFormat("he-IL", {minimumFractionDigits:2, maximumFractionDigits:4});
   const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-
-  /* ======================= נירמול מבנה תשובת ה-API ======================= */
-
-  const FIELDS = {
-    productlevel1:"l1", productlevel2:"l2", productlevel3:"l3",
-    category1taxes1:"t1", category1taxes2:"t2", category1taxes3:"t3", category1taxes4:"t4",
-    specialremarkforpassengerterminal:"note", keywords:"kw"
-  };
-  const keyNorm = k => String(k).toLowerCase().replace(/[^a-z0-9]/g, "");
-
-  function scoreRow(row){
-    if (!row || typeof row !== "object" || Array.isArray(row)) return -1;
-    let s = 0;
-    for (const k of Object.keys(row)) if (FIELDS[keyNorm(k)]) s++;
-    return s;
-  }
-
-  // מאתר בתוך ה-JSON את מערך הרשומות, לא משנה איך הוא עטוף (data / Rows / Table / …)
-  function findRows(json){
-    const seen = new Set(); const queue = [json]; let best = null;
-    while (queue.length){
-      const cur = queue.shift();
-      if (!cur || typeof cur !== "object" || seen.has(cur)) continue;
-      seen.add(cur);
-      if (Array.isArray(cur)){
-        if (cur.length && cur.every(x => x && typeof x === "object")){
-          const score = scoreRow(cur[0]);
-          if (!best || score > best.score || (score === best.score && cur.length > best.rows.length)){
-            best = {score, rows:cur};
-          }
-        }
-        for (const x of cur.slice(0, 5)) queue.push(x);
-      } else {
-        for (const v of Object.values(cur)) queue.push(v);
-      }
-    }
-    return best ? best.rows : [];
-  }
-
-  // אם הרשומות מגיעות כמערכים (עמודות + שורות) — מאתר את שמות העמודות
-  function findColumns(json, len){
-    const seen = new Set(); const queue = [json];
-    while (queue.length){
-      const cur = queue.shift();
-      if (!cur || typeof cur !== "object" || seen.has(cur)) continue;
-      seen.add(cur);
-      if (Array.isArray(cur) && cur.length === len){
-        if (cur.every(x => typeof x === "string")) return cur;
-        if (cur.every(x => x && typeof x === "object")){
-          const names = cur.map(x => {
-            for (const k of ["name","Name","columnName","ColumnName","field","Field","fieldName","key","id","Id"]) {
-              if (typeof x[k] === "string") return x[k];
-            }
-            return "";
-          });
-          if (names.every(Boolean)) return names;
-        }
-      }
-      const vals = Array.isArray(cur) ? cur.slice(0, 5) : Object.values(cur);
-      for (const v of vals) queue.push(v);
-    }
-    return null;
-  }
-
-  // מאתר מערך של שורות-מערכים (פורמט עמודות + שורות)
-  function findArrayOfArrays(json){
-    const seen = new Set(); const queue = [json]; let best = null;
-    while (queue.length){
-      const cur = queue.shift();
-      if (!cur || typeof cur !== "object" || seen.has(cur)) continue;
-      seen.add(cur);
-      if (Array.isArray(cur)){
-        if (cur.length && cur.every(x => Array.isArray(x))){
-          if (!best || cur.length > best.length) best = cur;
-        }
-        for (const x of cur.slice(0, 5)) queue.push(x);
-      } else {
-        for (const v of Object.values(cur)) queue.push(v);
-      }
-    }
-    return best;
-  }
-
-  function extractRecords(json){
-    let recs = mapRecords(findRows(json));
-    if (recs.length) return recs;
-    // ניסיון שני: פורמט עמודות + שורות
-    const arr = findArrayOfArrays(json);
-    if (arr){
-      const cols = findColumns(json, arr[0].length);
-      if (cols) recs = mapRecords(arr.map(r => { const o = {}; cols.forEach((c,i) => o[c] = r[i]); return o; }));
-    }
-    return recs;
-  }
-
-  function mapRecords(rows){
-    if (!rows || !rows.length || Array.isArray(rows[0])) return [];
-    const out = [];
-    for (const r of rows){
-      const rec = {};
-      for (const [k, v] of Object.entries(r)){
-        const c = FIELDS[keyNorm(k)];
-        if (c) rec[c] = clean(v);
-      }
-      // גם שורה ללא נתוני מס נשמרת — היא תציג "אין נתון" במקום להיעלם
-      if (rec.l1) out.push(rec);
-    }
-    return out;
-  }
 
   /* ==================== פענוח מחרוזת המס ("סך מסים") ==================== */
   // מחזיר: {ok, raw, exempt, unit, alts:[{percent, fixed}], needsQty}
@@ -782,39 +672,6 @@
     el.innerHTML = (spinner ? '<span class="spinner"></span>' : "") + "<span>" + esc(text) + "</span>";
   }
 
-  const PROXIES = [
-    u => u,
-    u => "https://api.allorigins.win/raw?url=" + encodeURIComponent(u),
-    u => "https://corsproxy.io/?url=" + encodeURIComponent(u)
-  ];
-
-  async function fetchData(){
-    let lastErr = "";
-    for (let i = 0; i < PROXIES.length; i++){
-      try{
-        setStatus("", i === 0 ? "טוען את טבלת המסים…" : "מנסה דרך שרת מתווך (" + i + ")…", true);
-        const res = await fetch(PROXIES[i](API_URL), {headers:{"Accept":"application/json"}});
-        if (!res.ok) { lastErr = "HTTP " + res.status; continue; }
-        const json = JSON.parse(await res.text());
-        const recs = extractRecords(json);
-        if (recs.length) return recs;
-        lastErr = "מבנה הנתונים לא זוהה";
-      }catch(e){ lastErr = e.message || String(e); }
-    }
-    throw new Error(lastErr || "טעינה נכשלה");
-  }
-
-  function saveCache(recs){
-    try{ localStorage.setItem(CACHE_KEY, JSON.stringify({ts:Date.now(), recs})); }catch(e){}
-  }
-  function loadCache(){
-    try{
-      const o = JSON.parse(localStorage.getItem(CACHE_KEY) || "null");
-      if (o && Array.isArray(o.recs) && o.recs.length && (Date.now() - o.ts) < CACHE_TTL) return o.recs;
-    }catch(e){}
-    return null;
-  }
-
   /* ===================== נתונים מוטמעים (GitHub Actions) ===================== */
   // הדף נבנה עם עותק של הנתונים בתוכו, כדי שלא יידרש שום API מהדפדפן.
   // הרענון מ-GitHub Actions מתבצע פעם ביום; ניתן גם לנסות משיכה חיה מהכפתורים.
@@ -842,142 +699,12 @@
   }
 
   /* ==================== שערי חליפין יציגים — בנק ישראל ==================== */
-  // מקור: EDGE של בנק ישראל (SDMX). מנסה כמה נקודות קצה, ואם כולן נכשלות
-  // נשארים שערי ברירת המחדל וניתן להזין שער ידנית.
+  // השערים מוטמעים בדף על ידי ה-Workflow. אין כאן קריאת רשת: אם אין שערים
+  // מוטמעים נשארים שערי ברירת המחדל, וניתן להזין שער ידנית.
 
   let RATES = Object.assign({}, DEFAULT_RATES);
   let RATES_SOURCE = "ברירת מחדל";
   let RATES_DATE = "";
-
-  const EDGE = "https://edge.boi.gov.il/FusionEdgeServer/sdmx/v2/data/dataflow/BOI.STATISTICS/EXR/1.0/";
-  const RATE_ENDPOINTS = [
-    { url: EDGE + "RER_USD_ILS+RER_EUR_ILS+RER_GBP_ILS?format=sdmx-json&lastNObservations=1", parse: parseSdmxRates },
-    { url: EDGE + "RER_USD_ILS?format=sdmx-json&lastNObservations=1", parse: parseSdmxRates },
-    { url: EDGE + "RER_EUR_ILS?format=sdmx-json&lastNObservations=1", parse: parseSdmxRates },
-    { url: EDGE + "RER_GBP_ILS?format=sdmx-json&lastNObservations=1", parse: parseSdmxRates },
-    { url: EDGE + "all?format=sdmx-json&lastNObservations=1", parse: parseSdmxRates },
-    { url: "https://boi.org.il/PublicApi/GetExchangeRates?asJson=true", parse: parseLegacyRates }
-  ];
-
-  function currencyFromCode(id){
-    const c = String(id || "").toUpperCase().replace(/ILS|NIS/g, "");
-    if (/USD/.test(c)) return "USD";
-    if (/EUR/.test(c)) return "EUR";
-    if (/GBP/.test(c)) return "GBP";
-    return null;
-  }
-
-  // פורמט SDMX-JSON (גם 1.0 וגם 2.0)
-  function parseSdmxRates(json){
-    const out = {};
-    const msg = (json && json.data && (json.data.dataSets || json.data.structure || json.data.structures)) ? json.data : json;
-    if (!msg || typeof msg !== "object") return out;
-    const structure = msg.structure || (Array.isArray(msg.structures) && msg.structures[0]) || json.structure;
-    const dataSets = msg.dataSets || msg.dataSet || [];
-    if (!structure || !dataSets.length) return out;
-
-    const dims = (structure.dimensions && structure.dimensions.series) || [];
-    const obsDims = (structure.dimensions && structure.dimensions.observation) || [];
-    const timeVals = (obsDims[0] && obsDims[0].values) || [];
-
-    for (const ds of [].concat(dataSets)){
-      const series = ds && ds.series;
-      if (!series) continue;
-      for (const [key, s] of Object.entries(series)){
-        // מזהה הסדרה מורכב מערכי הממדים לפי המיקום במפתח ("0:1:0")
-        const parts = key.split(":").map(Number);
-        let ids = [];
-        parts.forEach((v, i) => {
-          const vals = dims[i] && dims[i].values;
-          if (vals && vals[v] && vals[v].id) ids.push(String(vals[v].id));
-        });
-        const joined = ids.join("_");
-        const cur = currencyFromCode(joined);
-        if (!cur) continue;
-        const exact = ids.some(id => new RegExp("^RER_" + cur + "_ILS$", "i").test(id));
-        if (out[cur] && out[cur].exact && !exact) continue;
-
-        const obs = s.observations || {};
-        const oKeys = Object.keys(obs).sort((a,b) => Number(a) - Number(b));
-        if (!oKeys.length) continue;
-        const lastKey = oKeys[oKeys.length - 1];
-        const cell = obs[lastKey];
-        const val = Number(Array.isArray(cell) ? cell[0] : cell);
-        if (!isFinite(val) || val <= 0) continue;
-        const t = timeVals[Number(lastKey)];
-        out[cur] = { rate: val, date: t ? String(t.id || t.name || "") : "", exact };
-      }
-    }
-    return out;
-  }
-
-  // הפורמט הישן של boi.org.il ({"ExchangeRates":[{"Key":"USD","CurrentExchangeRate":3.7,"Unit":1}]})
-  function parseLegacyRates(json){
-    const out = {};
-    const seen = new Set(); const queue = [json];
-    while (queue.length){
-      const cur = queue.shift();
-      if (!cur || typeof cur !== "object" || seen.has(cur)) continue;
-      seen.add(cur);
-      if (!Array.isArray(cur)){
-        let code = null, rate = null, rateScore = 0, unit = 1, date = "";
-        for (const [k, v] of Object.entries(cur)){
-          const nk = keyNorm(k);
-          if (!code && (nk === "key" || nk === "currencycode" || nk === "currency") && typeof v === "string") code = currencyFromCode(v);
-          // דירוג: "CurrentExchangeRate" עדיף על שדות אחרים שמכילים "rate"
-          const score = /exchangerate/.test(nk) ? 3
-            : (nk === "rate" || nk === "currentrate" || nk === "value") ? 2
-            : (/rate/.test(nk) && !/change|percent/.test(nk)) ? 1 : 0;
-          if (score > rateScore && Number(v) > 0 && isFinite(Number(v))){ rate = Number(v); rateScore = score; }
-          if (nk === "unit" && Number(v) > 0) unit = Number(v);
-          if (/lastupdate|date/.test(nk) && typeof v === "string") date = v.slice(0, 10);
-        }
-        if (code && rate > 0) out[code] = { rate: rate / unit, date, exact:true };
-      }
-      const vals = Array.isArray(cur) ? cur : Object.values(cur);
-      for (const v of vals) queue.push(v);
-    }
-    return out;
-  }
-
-  async function tryFetchJson(url){
-    for (const proxy of PROXIES){
-      try{
-        const res = await fetch(proxy(url), {headers:{"Accept":"application/json"}});
-        if (!res.ok) continue;
-        return JSON.parse(await res.text());
-      }catch(e){ /* ננסה את המתווך הבא */ }
-    }
-    return null;
-  }
-
-  async function fetchRates(){
-    const found = {};
-    for (const ep of RATE_ENDPOINTS){
-      if (found.USD && found.EUR && found.GBP) break;
-      const json = await tryFetchJson(ep.url);
-      if (!json) continue;
-      const parsed = ep.parse(json);
-      for (const [k, v] of Object.entries(parsed)) if (!found[k]) found[k] = v;
-    }
-    return found;
-  }
-
-  function saveRates(rates, date){
-    try{ localStorage.setItem(RATES_KEY, JSON.stringify({ts:Date.now(), rates, date})); }catch(e){}
-  }
-  function loadRatesCache(){
-    try{
-      const o = JSON.parse(localStorage.getItem(RATES_KEY) || "null");
-      if (o && o.rates && o.rates.USD && (Date.now() - o.ts) < RATES_TTL) return o;
-    }catch(e){}
-    return null;
-  }
-
-  function ratesDate(found){
-    for (const c of ["USD","EUR","GBP"]) if (found[c] && found[c].date) return found[c].date;
-    return "";
-  }
 
   // שערים שהוטמעו בדף על ידי ה-Workflow ({date, USD, EUR, GBP})
   function embeddedRates(){
@@ -1126,19 +853,11 @@
     el.classList.remove("hidden");
   }
 
-  async function boot(){
+  function boot(){
     if (!EMBEDDED) EMBEDDED = readEmbedded();
     if (EMBEDDED){ useRecords(EMBEDDED.records); return; }
-    const cached = loadCache();
-    if (cached){ useRecords(cached); return; }
-    try{
-      const recs = await fetchData();
-      saveCache(recs);
-      useRecords(recs);
-    }catch(e){
-      $("statusText").textContent = "לא ניתן לטעון את נתוני המסים כרגע. נסו שוב מאוחר יותר.";
-      $("status").classList.remove("hidden");
-    }
+    $("statusText").textContent = "לא ניתן לטעון את נתוני המסים כרגע. נסו שוב מאוחר יותר.";
+    $("status").classList.remove("hidden");
   }
 
   /* ========================= בורר הקטגוריות ========================= */
@@ -1378,31 +1097,13 @@
     };
   }
 
-  async function loadRates(){
+  // כל הנתונים מגיעים מההטמעה בדף — אין קריאת רשת מהדפדפן
+  function loadRates(){
     const emb = embeddedRates();
     if (emb){
       RATES = Object.assign({}, DEFAULT_RATES, emb);
       RATES_DATE = (EMBEDDED.rates && EMBEDDED.rates.date) || "";
       RATES_SOURCE = "בנק ישראל";
-      applyRates(); renderRates("ok"); calc();
-      return;
-    }
-    const cached = loadRatesCache();
-    if (cached){
-      RATES = Object.assign({}, DEFAULT_RATES, cached.rates);
-      RATES_DATE = cached.date || "";
-      RATES_SOURCE = "בנק ישראל";
-      applyRates(); renderRates("ok"); calc();
-      return;
-    }
-    renderRates("loading");
-    let found = {};
-    try{ found = await fetchRates(); }catch(e){ found = {}; }
-    if (found && found.USD){
-      RATES = Object.assign({}, DEFAULT_RATES, found);
-      RATES_DATE = ratesDate(found);
-      RATES_SOURCE = "בנק ישראל";
-      saveRates(found, RATES_DATE);
       applyRates(); renderRates("ok");
     }else{
       RATES = Object.assign({}, DEFAULT_RATES);
